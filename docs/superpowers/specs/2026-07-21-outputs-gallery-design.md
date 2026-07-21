@@ -5,7 +5,9 @@
 
 ## Overview
 
-Add a new "Outputs" tab to the standalone web UI that displays images generated with `Save Image (LoraManager)` from ComfyUI's output directory. The gallery reuses existing UI patterns (folder sidebar, sort controls, card grid) and follows the decoupled "standalone page" route registration pattern used by `stats_routes.py`.
+Add a new "Outputs" tab to the standalone web UI that displays images generated with `Save Image (LoraManager)` from ComfyUI's output directory. The page **follows the exact same layout pattern as LORAs / Checkpoints / Embeddings** — folder sidebar on the left, sticky controls bar on top, and a card grid filling the remaining space. It reuses existing UI patterns (folder sidebar, sort controls, card grid) and follows the decoupled "standalone page" route registration pattern used by `stats_routes.py`.
+
+> **Layout reference:** `templates/loras.html` — the Outputs page template is structurally identical, with the same `{% block content %}` including `controls.html`, `breadcrumb.html`, and `folder_sidebar.html`, plus a `<div class="card-grid">`. The only differences are: (1) cards display image thumbnails instead of model previews, (2) no context menu, (3) no bulk-mode overlay, (4) no duplicates banner for MVP.
 
 ## Scope (MVP)
 
@@ -24,7 +26,7 @@ Add a new "Outputs" tab to the standalone web UI that displays images generated 
 | `py/routes/outputs_routes.py` | Register GET /outputs page route and REST API endpoints |
 | `templates/outputs.html` | Page template extending base.html |
 | `static/js/outputs.js` | OutputsPageManager class |
-| `static/css/outputs.css` | Page-specific styles (optional) |
+| `static/css/outputs.css` | Page-specific styles (optional — likely unnecessary, all styles come from shared `style.css`) |
 
 ### Modified Files (4)
 
@@ -106,13 +108,37 @@ Query params: `sort=created_at`, `order=asc|desc`, `path=` (optional subfolder f
 
 ### Template (`templates/outputs.html`)
 
-Extends `base.html`. Sets `page_id = "outputs"`. Content block includes:
-- `components/folder_sidebar.html` — lists subfolders from API response, "All Outputs" default
-- `components/controls.html` — reuses sort select + direction button
-- `<div class="card-grid" id="outputGrid">` — image grid
-- Lightbox overlay (rendered server-side, toggled via JS)
+Extends `base.html`. Sets `page_id = "outputs"`. **Mirrors the exact structure of `templates/loras.html`** (`templates/checkpoints.html`, `templates/embeddings.html`):
+
+```jinja2
+{% extends "base.html" %}
+{% block page_id %}outputs{% endblock %}
+
+{% block content %}
+    {% include 'components/controls.html' %}
+    {% include 'components/breadcrumb.html' %}
+    {% include 'components/folder_sidebar.html' %}
+    <div class="card-grid" id="outputGrid">
+        <!-- Image cards inserted by JS -->
+    </div>
+{% endblock %}
+
+{% block main_script %}
+<script type="module" src="/loras_static/js/outputs.js?v={{ version }}"></script>
+{% endblock %}
+```
+
+No `{% block additional_components %}` (no context menu needed for MVP).  
+No `{% block overlay %}` (no bulk mode for MVP).  
+No `{% block page_css %}` (relies entirely on shared `style.css` — card grid, sidebar, controls already styled).
+
+The lightbox is **not rendered server-side**; instead it is created dynamically by the JS `OutputsPageManager` using the existing `.media-viewer-overlay` pattern from `static/css/components/media-viewer.css`.
+
+**i18n note:** This template uses `{{ t('...') }}` for all user-facing strings, consistent with the other pages. The `t()` function and `page_id` are passed to the template context by the route handler.
 
 ### JavaScript (`static/js/outputs.js`)
+
+Follows the same class structure as `LoraPageManager` in `static/js/loras.js`:
 
 ```javascript
 class OutputsPageManager {
@@ -121,7 +147,7 @@ class OutputsPageManager {
     renderGrid(images)           // create card elements with lazy-loaded thumbnails
     setupSortControls()          // reuse sort-select + direction events from controls.html
     setupFolderSidebar()         // folder click → reload grid filtered by folder
-    openLightbox(imageData)      // show full image + metadata panel
+    openLightbox(imageData)      // show full image + metadata panel using shared MediaViewer
     setupKeyboardNav()           // ← → for prev/next, Esc to close
     async copyToClipboard(text)  // clipboard API
     async deleteImage(path)      // confirmation dialog → DELETE API → reload
@@ -130,21 +156,27 @@ class OutputsPageManager {
 }
 ```
 
+**Key difference from `LoraPageManager`:** the card rendering creates `<img>` elements (lazy-loaded thumbnails via `GET /api/lm/outputs/thumbnail`) instead of model preview images, and the lightbox uses a metadata panel inside `.media-viewer-overlay` to display generation info (prompt, seed, sampler, etc.) rather than model details.
+
 ### Card Design (Grid)
 
-Each card shows:
-- Lazy-loaded thumbnail (`GET /api/lm/outputs/thumbnail`)
+Same `.card-grid` / `.model-card` structure from `static/css/components/card.css` used by LORAs/Checkpoints/Embeddings. Each card shows:
+- Lazy-loaded thumbnail via `<img>` with `GET /api/lm/outputs/thumbnail`
 - Overlay on hover: date, truncated prompt (first 80 chars), seed
 - Click → opens lightbox
 
+No CSS changes needed — the existing card grid styles apply as-is.
+
 ### Lightbox Design
 
-Full-screen overlay with:
+Reuses the **existing `.media-viewer-overlay`** from `static/css/components/media-viewer.css` (the same component used by `MediaViewer.js` for model example images). Full-screen overlay with:
 - Image centered, max 90vh, dark background
 - Top-right: close (✕), download, delete buttons
 - Bottom panel: all metadata fields, each clickable to copy
 - Bottom action buttons: Copy Prompt, Copy All, Copy Seed, Download, Open Folder, Delete
 - Keyboard: ←/→ navigate, Esc close
+
+No CSS changes needed — the overlay container, close button, nav arrows, and counter already exist in `media-viewer.css`. The metadata panel is a new child element rendered by JS inside the overlay (not a new CSS component).
 
 ## Security
 
