@@ -200,6 +200,7 @@
       "recipes": "Recipes",
       "checkpoints": "Checkpoints",
       "embeddings": "Embeddings",
+      "outputs": "Outputs",
       "statistics": "Stats"
     },
     "search": {
@@ -1020,6 +1021,11 @@
   },
   "embeddings": {
     "title": "Embedding Models"
+  },
+  "outputs": {
+    "title": "Outputs",
+    "metadataAvailable": "Metadata available",
+    "metadataUnavailable": "Metadata unavailable"
   },
   "sidebar": {
     "modelRoot": "Root",

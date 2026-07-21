@@ -15,6 +15,8 @@
       {% set current_page = 'checkpoints' %}
       {% elif current_path.startswith('/embeddings') %}
       {% set current_page = 'embeddings' %}
+      {% elif current_path.startswith('/outputs') %}
+      {% set current_page = 'outputs' %}
       {% elif current_path.startswith('/statistics') %}
       {% set current_page = 'statistics' %}
       {% else %}
@@ -35,6 +37,10 @@
         <a href="/embeddings" class="nav-item{% if current_path.startswith('/embeddings') %} active{% endif %}"
           id="embeddingsNavItem">
           <i class="fas fa-code"></i> <span>{{ t('header.navigation.embeddings') }}</span>
+        </a>
+        <a href="/outputs" class="nav-item{% if current_path.startswith('/outputs') %} active{% endif %}"
+          id="outputsNavItem">
+          <i class="fas fa-image"></i> <span>{{ t('header.navigation.outputs') }}</span>
         </a>
         <a href="/statistics" class="nav-item{% if current_path.startswith('/statistics') %} active{% endif %}"
           id="statisticsNavItem">
@@ -261,7 +267,7 @@
       {{ t('header.filter.noTagMatches') }}
     </div>
   </div>
-  {% if current_page == 'loras' or current_page == 'checkpoints' %}
+  {% if current_page == 'loras' or current_page == 'outputs' or current_page == 'checkpoints' %}
   <div class="filter-section">
     <h4>{{ t('header.filter.modelTypes') }}</h4>
     <div class="filter-tags" id="modelTypeTags">

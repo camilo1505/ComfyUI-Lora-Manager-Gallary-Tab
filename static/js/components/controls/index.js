@@ -13,7 +13,7 @@ export { PageControls, LorasControls, CheckpointsControls, EmbeddingsControls };
  * @returns {PageControls} - The appropriate controls instance
  */
 export function createPageControls(pageType) {
-    if (pageType === 'loras') {
+    if (pageType === 'loras' || pageType === 'outputs') {
         return new LorasControls();
     } else if (pageType === 'checkpoints') {
         return new CheckpointsControls();

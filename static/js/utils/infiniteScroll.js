@@ -58,6 +58,11 @@ async function getCardCreator(pageType) {
         };
     }
 
+    if (pageType === 'outputs') {
+        const { createOutputCard } = await import('../components/shared/OutputCard.js');
+        return (output) => createOutputCard(output);
+    }
+
     // For other page types, use the shared ModelCard creator
     return (model) => createModelCard(model, pageType);
 
@@ -65,7 +70,7 @@ async function getCardCreator(pageType) {
 
 // Function to get the appropriate data fetcher based on page type
 async function getDataFetcher(pageType) {
-    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints') {
+    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints' || pageType === 'outputs') {
         return (page = 1, pageSize = 100) => getModelApiClient().fetchModelsPage(page, pageSize);
     } else if (pageType === 'recipes') {
         // Import the recipeApi module and use the fetchRecipesPage function
@@ -109,6 +114,7 @@ async function initializeVirtualScroll(pageType) {
         case 'recipes':
             gridId = 'recipeGrid';
             break;
+        case 'outputs':
         case 'checkpoints':
         case 'loras':
         default:

@@ -9,7 +9,8 @@ import { state } from '../state/index.js';
 export const MODEL_TYPES = {
     LORA: 'loras',
     CHECKPOINT: 'checkpoints',
-    EMBEDDING: 'embeddings' // Future model type
+    EMBEDDING: 'embeddings',
+    OUTPUTS: 'outputs'
 };
 
 // Base API configuration for each model type
@@ -40,6 +41,15 @@ export const MODEL_CONFIG = {
         supportsBulkOperations: true,
         supportsMove: true,
         templateName: 'embeddings.html'
+    },
+    [MODEL_TYPES.OUTPUTS]: {
+        displayName: 'Outputs',
+        singularName: 'output',
+        defaultPageSize: 100,
+        supportsLetterFilter: true,
+        supportsBulkOperations: true,
+        supportsMove: true,
+        templateName: 'outputs.html'
     }
 };
 
@@ -53,61 +63,65 @@ export function getApiEndpoints(modelType) {
         throw new Error(`Invalid model type: ${modelType}`);
     }
 
+    // Outputs shares the same API endpoints as LoRAs
+    const apiPrefix = modelType === MODEL_TYPES.OUTPUTS ? MODEL_TYPES.LORA : modelType;
+
     return {
         // Base CRUD operations
-        list: `/api/lm/${modelType}/list`,
-        excluded: `/api/lm/${modelType}/excluded`,
-        delete: `/api/lm/${modelType}/delete`,
-        exclude: `/api/lm/${modelType}/exclude`,
-        unexclude: `/api/lm/${modelType}/unexclude`,
-        rename: `/api/lm/${modelType}/rename`,
-        save: `/api/lm/${modelType}/save-metadata`,
-        cancelTask: `/api/lm/${modelType}/cancel-task`,
+        list: `/api/lm/${apiPrefix}/list`,
+        excluded: `/api/lm/${apiPrefix}/excluded`,
+        delete: `/api/lm/${apiPrefix}/delete`,
+        exclude: `/api/lm/${apiPrefix}/exclude`,
+        unexclude: `/api/lm/${apiPrefix}/unexclude`,
+        rename: `/api/lm/${apiPrefix}/rename`,
+        save: `/api/lm/${apiPrefix}/save-metadata`,
+        cancelTask: `/api/lm/${apiPrefix}/cancel-task`,
 
         // Bulk operations
-        bulkDelete: `/api/lm/${modelType}/bulk-delete`,
+        bulkDelete: `/api/lm/${apiPrefix}/bulk-delete`,
 
         // Tag operations
-        addTags: `/api/lm/${modelType}/add-tags`,
+        addTags: `/api/lm/${apiPrefix}/add-tags`,
 
         // Move operations (now common for all model types that support move)
-        moveModel: `/api/lm/${modelType}/move_model`,
-        moveBulk: `/api/lm/${modelType}/move_models_bulk`,
+        moveModel: `/api/lm/${apiPrefix}/move_model`,
+        moveBulk: `/api/lm/${apiPrefix}/move_models_bulk`,
 
         // CivitAI integration
-        fetchCivitai: `/api/lm/${modelType}/fetch-civitai`,
-        fetchAllCivitai: `/api/lm/${modelType}/fetch-all-civitai`,
-        relinkCivitai: `/api/lm/${modelType}/relink-civitai`,
-        civitaiVersions: `/api/lm/${modelType}/civitai/versions`,
-        refreshUpdates: `/api/lm/${modelType}/updates/refresh`,
-        fetchMissingLicenses: `/api/lm/${modelType}/updates/fetch-missing-license`,
-        modelUpdateStatus: `/api/lm/${modelType}/updates/status`,
-        modelUpdateVersions: `/api/lm/${modelType}/updates/versions`,
-        ignoreModelUpdate: `/api/lm/${modelType}/updates/ignore`,
-        ignoreVersionUpdate: `/api/lm/${modelType}/updates/ignore-version`,
+        fetchCivitai: `/api/lm/${apiPrefix}/fetch-civitai`,
+        fetchAllCivitai: `/api/lm/${apiPrefix}/fetch-all-civitai`,
+        relinkCivitai: `/api/lm/${apiPrefix}/relink-civitai`,
+        civitaiVersions: `/api/lm/${apiPrefix}/civitai/versions`,
+        refreshUpdates: `/api/lm/${apiPrefix}/updates/refresh`,
+        fetchMissingLicenses: `/api/lm/${apiPrefix}/updates/fetch-missing-license`,
+        modelUpdateStatus: `/api/lm/${apiPrefix}/updates/status`,
+        modelUpdateVersions: `/api/lm/${apiPrefix}/updates/versions`,
+        ignoreModelUpdate: `/api/lm/${apiPrefix}/updates/ignore`,
+        ignoreVersionUpdate: `/api/lm/${apiPrefix}/updates/ignore-version`,
 
         // Preview management
-        replacePreview: `/api/lm/${modelType}/replace-preview`,
-        setPreviewFromUrl: `/api/lm/${modelType}/set-preview-from-url`,
+        replacePreview: `/api/lm/${apiPrefix}/replace-preview`,
+        setPreviewFromUrl: `/api/lm/${apiPrefix}/set-preview-from-url`,
 
         // Query operations
-        scan: `/api/lm/${modelType}/scan`,
-        topTags: `/api/lm/${modelType}/top-tags`,
-        searchTags: `/api/lm/${modelType}/search-tags`,
-        baseModels: `/api/lm/${modelType}/base-models`,
-        roots: `/api/lm/${modelType}/roots`,
-        folders: `/api/lm/${modelType}/folders`,
-        folderTree: `/api/lm/${modelType}/folder-tree`,
-        unifiedFolderTree: `/api/lm/${modelType}/unified-folder-tree`,
-        duplicates: `/api/lm/${modelType}/find-duplicates`,
-        conflicts: `/api/lm/${modelType}/find-filename-conflicts`,
-        verify: `/api/lm/${modelType}/verify-duplicates`,
-        metadata: `/api/lm/${modelType}/metadata`,
-        modelDescription: `/api/lm/${modelType}/model-description`,
+        scan: `/api/lm/${apiPrefix}/scan`,
+        topTags: `/api/lm/${apiPrefix}/top-tags`,
+        searchTags: `/api/lm/${apiPrefix}/search-tags`,
+        baseModels: `/api/lm/${apiPrefix}/base-models`,
+        modelTypes: `/api/lm/${apiPrefix}/model-types`,
+        roots: `/api/lm/${apiPrefix}/roots`,
+        folders: `/api/lm/${apiPrefix}/folders`,
+        folderTree: `/api/lm/${apiPrefix}/folder-tree`,
+        unifiedFolderTree: `/api/lm/${apiPrefix}/unified-folder-tree`,
+        duplicates: `/api/lm/${apiPrefix}/find-duplicates`,
+        conflicts: `/api/lm/${apiPrefix}/find-filename-conflicts`,
+        verify: `/api/lm/${apiPrefix}/verify-duplicates`,
+        metadata: `/api/lm/${apiPrefix}/metadata`,
+        modelDescription: `/api/lm/${apiPrefix}/model-description`,
 
         // Auto-organize operations
-        autoOrganize: `/api/lm/${modelType}/auto-organize`,
-        autoOrganizeProgress: `/api/lm/${modelType}/auto-organize-progress`,
+        autoOrganize: `/api/lm/${apiPrefix}/auto-organize`,
+        autoOrganizeProgress: `/api/lm/${apiPrefix}/auto-organize-progress`,
 
         // Model-specific endpoints (will be merged with specific configs)
         specific: {}
@@ -137,6 +151,17 @@ export const MODEL_SPECIFIC_ENDPOINTS = {
     },
     [MODEL_TYPES.EMBEDDING]: {
         metadata: `/api/lm/${MODEL_TYPES.EMBEDDING}/metadata`,
+    },
+    [MODEL_TYPES.OUTPUTS]: {
+        letterCounts: `/api/lm/${MODEL_TYPES.LORA}/letter-counts`,
+        notes: `/api/lm/${MODEL_TYPES.LORA}/get-notes`,
+        triggerWords: `/api/lm/${MODEL_TYPES.LORA}/get-trigger-words`,
+        previewUrl: `/api/lm/${MODEL_TYPES.LORA}/preview-url`,
+        civitaiUrl: `/api/lm/${MODEL_TYPES.LORA}/civitai-url`,
+        metadata: `/api/lm/${MODEL_TYPES.LORA}/metadata`,
+        getTriggerWordsPost: `/api/lm/${MODEL_TYPES.LORA}/get_trigger_words`,
+        civitaiModelByVersion: `/api/lm/${MODEL_TYPES.LORA}/civitai/model/version`,
+        civitaiModelByHash: `/api/lm/${MODEL_TYPES.LORA}/civitai/model/hash`,
     }
 };
 
