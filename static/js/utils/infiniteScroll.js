@@ -74,7 +74,8 @@ async function getDataFetcher(pageType) {
         return async (page = 1, pageSize = 100) => {
             const pageState = getCurrentPageState();
             const sortBy = pageState.sortBy || 'created_at:desc';
-            const folder = pageState.activeFolder || '';
+            const recursive = pageState.searchOptions?.recursive ?? true;
+            const folder = recursive ? '' : (pageState.activeFolder || '');
             const params = new URLSearchParams({
                 page,
                 page_size: pageSize,

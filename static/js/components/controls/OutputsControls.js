@@ -85,7 +85,6 @@ export class OutputsControls {
         this.pageState.hasMore = true;
 
         this.sidebarManager = sidebarManager;
-        this.sortChangeHandler = null;
 
         this._initSort();
         this._initBulk();
@@ -143,12 +142,12 @@ export class OutputsControls {
         await refreshVirtualScroll();
     }
 
-    async resetAndReload() {
+    async resetAndReload(updateFolders) {
+        if (this.pageState.searchOptions) {
+            this.pageState.searchOptions.recursive = this.sidebarManager.recursiveSearchEnabled;
+        }
+        this.pageState.activeFolder = this.sidebarManager.selectedPath || '';
         await refreshVirtualScroll();
-    }
-
-    onSortChange(handler) {
-        this.sortChangeHandler = handler;
     }
 
     getSidebarApiClient() {
@@ -160,7 +159,11 @@ export class OutputsControls {
                 const folders = data.folders || [];
                 return { success: true, tree: buildTreeFromFolders(folders) };
             },
-            async fetchModelFolders() { return { folders: [] }; },
+            async fetchModelFolders() {
+                const res = await fetch('/api/lm/outputs/list?page_size=1');
+                const data = await res.json();
+                return { folders: data.folders || [] };
+            },
             async loadMoreWithVirtualScroll() { await refreshVirtualScroll(); },
             async moveSingleModel() {},
             async moveBulkModels() { return []; },
