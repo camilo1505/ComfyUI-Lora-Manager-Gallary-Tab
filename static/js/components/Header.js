@@ -19,7 +19,7 @@ export class HeaderManager {
       this.filterManager = null;
       
       // Initialize appropriate managers based on current page
-      if (this.currentPage !== 'statistics') {
+      if (this.currentPage !== 'statistics' && this.currentPage !== 'outputs') {
         this.initializeManagers();
       }
       

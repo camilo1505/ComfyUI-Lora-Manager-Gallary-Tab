@@ -88,6 +88,21 @@ class MockFolderPaths:
         os.makedirs(path, exist_ok=True)
         return path
 
+    @staticmethod
+    def get_output_directory():
+        settings_path = ensure_settings_file()
+        try:
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    settings = json.load(f)
+                path = settings.get("outputs_path", "")
+                if path and os.path.isdir(path):
+                    return path
+        except Exception:
+            pass
+        fallback = os.path.join(os.path.dirname(__file__), "output")
+        return os.path.abspath(fallback)
+
 
 # Create mock server module with PromptServer
 class MockPromptServer:

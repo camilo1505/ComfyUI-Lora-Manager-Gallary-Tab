@@ -70,7 +70,34 @@ async function getCardCreator(pageType) {
 
 // Function to get the appropriate data fetcher based on page type
 async function getDataFetcher(pageType) {
-    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints' || pageType === 'outputs') {
+    if (pageType === 'outputs') {
+        return async (page = 1, pageSize = 100) => {
+            const pageState = getCurrentPageState();
+            const sortBy = pageState.sortBy || 'created_at:desc';
+            const folder = pageState.activeFolder || '';
+            const params = new URLSearchParams({
+                page,
+                page_size: pageSize,
+                sort_by: sortBy,
+            });
+            if (folder) params.set('folder', folder);
+
+            const url = `/api/lm/outputs/list?${params}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch outputs: ${response.statusText}`);
+            const data = await response.json();
+            return {
+                items: data.items || data.images || [],
+                totalItems: data.total || 0,
+                totalPages: data.total_pages || 1,
+                currentPage: page,
+                hasMore: page < (data.total_pages || 1),
+                folders: data.folders || [],
+            };
+        };
+    }
+
+    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints') {
         return (page = 1, pageSize = 100) => getModelApiClient().fetchModelsPage(page, pageSize);
     } else if (pageType === 'recipes') {
         // Import the recipeApi module and use the fetchRecipesPage function
@@ -81,7 +108,6 @@ async function getDataFetcher(pageType) {
 }
 
 export async function initializeInfiniteScroll(pageType = 'loras') {
-    // Clean up any existing virtual scroller
     if (state.virtualScroller) {
         state.virtualScroller.dispose();
         state.virtualScroller = null;
@@ -103,11 +129,17 @@ export async function initializeInfiniteScroll(pageType = 'loras') {
     await initializeVirtualScroll(pageType);
 
     // Setup event delegation for model cards based on page type
-    setupModelCardEventDelegation(pageType);
+    if (pageType !== 'outputs') {
+        setupModelCardEventDelegation(pageType);
+    }
+
+    if (pageType === 'outputs') {
+        const { setupOutputCardEventDelegation } = await import('../components/shared/OutputCard.js');
+        setupOutputCardEventDelegation();
+    }
 }
 
 async function initializeVirtualScroll(pageType) {
-    // Determine the grid ID based on page type
     let gridId;
 
     switch (pageType) {
@@ -142,7 +174,6 @@ async function initializeVirtualScroll(pageType) {
         // Get the card creator and data fetcher for this page type
         const createCardFn = await getCardCreator(pageType);
         const fetchDataFn = await getDataFetcher(pageType);
-
         if (!createCardFn || !fetchDataFn) {
             throw new Error(`Required components not available for ${pageType} page`);
         }
@@ -158,7 +189,7 @@ async function initializeVirtualScroll(pageType) {
             rowGap: 20,
             containerPaddingTop: 4,
             containerPaddingBottom: 4,
-            enableDataWindowing: false // Explicitly set to false to disable data windowing
+            enableDataWindowing: false
         });
 
         // Initialize the virtual scroller

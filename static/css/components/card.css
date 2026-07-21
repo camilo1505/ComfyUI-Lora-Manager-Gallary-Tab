@@ -917,3 +917,57 @@ body.hide-card-version .hl-badge {
     flex-wrap: wrap;
     gap: 3px;
 }
+
+.output-modal-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    min-height: 0;
+}
+
+.output-modal-preview {
+    display: block;
+    max-width: 55%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.output-modal-info {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.output-prompt-box {
+    position: relative;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 8px 10px;
+    background: var(--input-bg, rgba(255,255,255,0.04));
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: var(--text-color, #ccc);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.output-prompt-box:hover {
+    background: var(--input-bg-hover, rgba(255,255,255,0.08));
+}
+
+.output-copy-icon {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 0.8em;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.output-prompt-box:hover .output-copy-icon {
+    opacity: 0.5;
+}

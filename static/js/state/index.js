@@ -233,7 +233,7 @@ export const state = {
             currentPage: 1,
             isLoading: false,
             hasMore: true,
-            sortBy: 'name',
+            sortBy: 'created_at:desc',
             activeFolder: getStorageItem(`${MODEL_TYPES.OUTPUTS}_activeFolder`),
             activeLetterFilter: null,
             previewVersions: loraPreviewVersions,

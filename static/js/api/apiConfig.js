@@ -63,8 +63,7 @@ export function getApiEndpoints(modelType) {
         throw new Error(`Invalid model type: ${modelType}`);
     }
 
-    // Outputs shares the same API endpoints as LoRAs
-    const apiPrefix = modelType === MODEL_TYPES.OUTPUTS ? MODEL_TYPES.LORA : modelType;
+    const apiPrefix = modelType;
 
     return {
         // Base CRUD operations
