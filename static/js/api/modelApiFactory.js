@@ -12,8 +12,6 @@ export function createModelApiClient(modelType) {
             return new CheckpointApiClient(MODEL_TYPES.CHECKPOINT);
         case MODEL_TYPES.EMBEDDING:
             return new EmbeddingApiClient(MODEL_TYPES.EMBEDDING);
-        case MODEL_TYPES.OUTPUTS:
-            return new LoraApiClient(MODEL_TYPES.LORA);
         default:
             throw new Error(`Unsupported model type: ${modelType}`);
     }

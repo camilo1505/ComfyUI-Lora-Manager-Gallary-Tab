@@ -61,11 +61,11 @@ export class FilterManager {
         this.initializeFilterSearchInputs();
 
         // Create base model filter tags if they exist
-        if (document.getElementById('baseModelTags') && this.currentPage !== 'outputs') {
+        if (document.getElementById('baseModelTags')) {
             this.createBaseModelTags();
         }
 
-        if (document.getElementById('modelTypeTags') && this.currentPage !== 'outputs') {
+        if (document.getElementById('modelTypeTags')) {
             this.createModelTypeTags();
         }
 
@@ -156,8 +156,6 @@ export class FilterManager {
     }
 
     async searchTags(query) {
-        if (this.currentPage === 'outputs') return;
-
         // Abort any in-flight search request
         if (this.tagSearchAbortController) {
             this.tagSearchAbortController.abort();
@@ -209,8 +207,6 @@ export class FilterManager {
     }
 
     async loadTopTags() {
-        if (this.currentPage === 'outputs') return;
-
         // Abort any in-flight tag search request
         if (this.tagSearchAbortController) {
             this.tagSearchAbortController.abort();

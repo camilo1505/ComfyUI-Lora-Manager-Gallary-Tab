@@ -150,17 +150,6 @@ export const MODEL_SPECIFIC_ENDPOINTS = {
     },
     [MODEL_TYPES.EMBEDDING]: {
         metadata: `/api/lm/${MODEL_TYPES.EMBEDDING}/metadata`,
-    },
-    [MODEL_TYPES.OUTPUTS]: {
-        letterCounts: `/api/lm/${MODEL_TYPES.LORA}/letter-counts`,
-        notes: `/api/lm/${MODEL_TYPES.LORA}/get-notes`,
-        triggerWords: `/api/lm/${MODEL_TYPES.LORA}/get-trigger-words`,
-        previewUrl: `/api/lm/${MODEL_TYPES.LORA}/preview-url`,
-        civitaiUrl: `/api/lm/${MODEL_TYPES.LORA}/civitai-url`,
-        metadata: `/api/lm/${MODEL_TYPES.LORA}/metadata`,
-        getTriggerWordsPost: `/api/lm/${MODEL_TYPES.LORA}/get_trigger_words`,
-        civitaiModelByVersion: `/api/lm/${MODEL_TYPES.LORA}/civitai/model/version`,
-        civitaiModelByHash: `/api/lm/${MODEL_TYPES.LORA}/civitai/model/hash`,
     }
 };
 
