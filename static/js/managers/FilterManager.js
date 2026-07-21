@@ -501,7 +501,8 @@ export class FilterManager {
         modelTypeContainer.innerHTML = '<div class="tags-loading">Loading model types...</div>';
 
         try {
-            const response = await fetch(`/api/lm/${this.currentPage}/model-types?limit=20`);
+            const modelTypesUrl = `${getApiEndpoints(this.currentPage).modelTypes}?limit=20`;
+            const response = await fetch(modelTypesUrl);
             if (!response.ok) {
                 throw new Error('Failed to fetch model types');
             }

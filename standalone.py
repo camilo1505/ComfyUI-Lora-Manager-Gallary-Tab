@@ -88,6 +88,21 @@ class MockFolderPaths:
         os.makedirs(path, exist_ok=True)
         return path
 
+    @staticmethod
+    def get_output_directory():
+        settings_path = ensure_settings_file()
+        try:
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    settings = json.load(f)
+                path = settings.get("outputs_path", "")
+                if path and os.path.isdir(path):
+                    return path
+        except Exception:
+            pass
+        fallback = os.path.join(os.path.dirname(__file__), "output")
+        return os.path.abspath(fallback)
+
 
 # Create mock server module with PromptServer
 class MockPromptServer:
@@ -331,6 +346,7 @@ class StandaloneLoraManager(LoraManager):
         from py.routes.example_images_routes import ExampleImagesRoutes
         from py.routes.preview_routes import PreviewRoutes
         from py.routes.stats_routes import StatsRoutes
+        from py.routes.output_routes import OutputRoutes
         from py.services.websocket_manager import ws_manager
 
         register_default_model_types()
@@ -339,9 +355,11 @@ class StandaloneLoraManager(LoraManager):
         ModelServiceFactory.setup_all_routes(app)
 
         stats_routes = StatsRoutes()
+        output_routes = OutputRoutes()
 
         # Initialize routes
         stats_routes.setup_routes(app)
+        output_routes.setup_routes(app)
         RecipeRoutes.setup_routes(app)
         UpdateRoutes.setup_routes(app)
         MiscRoutes.setup_routes(app)

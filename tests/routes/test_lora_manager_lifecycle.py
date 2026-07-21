@@ -190,6 +190,7 @@ async def test_lora_manager_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path:
             "/example_images_static",
             "/locales",
             "/loras_static",
+            "/outputs_static",
         }
         get_paths = {path for path, _ in added_get_routes}
         assert {"/ws/fetch-progress", "/ws/download-progress", "/ws/init-progress"}.issubset(get_paths)

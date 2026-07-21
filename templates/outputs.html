@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('header.appTitle') }}{% endblock %}
+{% block page_id %}outputs{% endblock %}
+
+{% block content %}
+    {% include 'components/outputs_controls.html' %}
+    {% include 'components/breadcrumb.html' %}
+    {% include 'components/folder_sidebar.html' %}
+
+    <div class="card-grid" id="modelGrid"></div>
+{% endblock %}
+
+{% block main_script %}
+<script type="module" src="/loras_static/js/outputs.js?v={{ version }}"></script>
+{% endblock %}

@@ -1121,6 +1121,7 @@ export class SidebarManager {
             recipes: 'Recipes',
             checkpoints: 'Checkpoints',
             embeddings: 'Embeddings',
+            outputs: 'Outputs',
         };
         return names[this.pageType] || this.pageType;
     }

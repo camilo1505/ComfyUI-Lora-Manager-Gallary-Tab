@@ -58,6 +58,8 @@ class InitializationManager {
             this.pageType = 'loras';
         } else if (path.includes('/embeddings')) {
             this.pageType = 'embeddings';
+        } else if (path.includes('/outputs')) {
+            this.pageType = 'outputs';
         } else {
             // Default to loras if can't determine
             this.pageType = 'loras';
