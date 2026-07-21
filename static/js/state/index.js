@@ -227,6 +227,44 @@ export const state = {
                 search: '',
             },
             activeViewSnapshot: null,
+        },
+
+        [MODEL_TYPES.OUTPUTS]: {
+            currentPage: 1,
+            isLoading: false,
+            hasMore: true,
+            sortBy: 'created_at:desc',
+            activeFolder: getStorageItem(`${MODEL_TYPES.OUTPUTS}_activeFolder`),
+            activeLetterFilter: null,
+            previewVersions: loraPreviewVersions,
+            searchManager: null,
+            searchOptions: {
+                filename: true,
+                modelname: true,
+                tags: false,
+                creator: false,
+                recursive: getStorageItem(`${MODEL_TYPES.OUTPUTS}_recursiveSearch`, true),
+            },
+            filters: {
+                baseModel: [],
+                tags: {},
+                license: {},
+                modelTypes: [],
+                search: '',
+                tagLogic: 'any',
+            },
+            bulkMode: false,
+            selectedLoras: new Set(),
+            loraMetadataCache: new Map(),
+            showFavoritesOnly: false,
+            showUpdateAvailableOnly: false,
+            duplicatesMode: false,
+            viewMode: 'active',
+            excludedViewState: {
+                sortBy: 'name:asc',
+                search: '',
+            },
+            activeViewSnapshot: null,
         }
     },
 
@@ -289,7 +327,7 @@ export const state = {
 
     get selectedModels() {
         const currentType = this.currentPageType;
-        if (currentType === MODEL_TYPES.LORA) {
+        if (currentType === MODEL_TYPES.LORA || currentType === MODEL_TYPES.OUTPUTS) {
             return this.pages.loras.selectedLoras;
         } else {
             return this.pages[currentType].selectedModels;
@@ -297,7 +335,7 @@ export const state = {
     },
     set selectedModels(value) {
         const currentType = this.currentPageType;
-        if (currentType === MODEL_TYPES.LORA) {
+        if (currentType === MODEL_TYPES.LORA || currentType === MODEL_TYPES.OUTPUTS) {
             this.pages.loras.selectedLoras = value;
         } else {
             this.pages[currentType].selectedModels = value;

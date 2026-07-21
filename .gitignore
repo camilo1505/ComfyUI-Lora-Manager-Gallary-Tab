@@ -39,6 +39,10 @@ vue-widgets/dist/
 # Working/research notes (not committed)
 .docs/
 
+# pnpm artifacts (project uses npm)
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
 # HF enrichment validation baseline snapshots (contain potentially
 # NSFW README content fetched from community model repos)
 tests/enrich_hf_validation/baselines/

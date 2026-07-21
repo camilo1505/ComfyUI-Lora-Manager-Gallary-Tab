@@ -1,159 +1,113 @@
 # AGENTS.md
 
 This file provides guidance for agentic coding assistants working in this repository.
+See `CLAUDE.md` for a more detailed architectural overview.
 
 ## Development Commands
 
-### Backend Development
+### Backend
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# requirements-dev.txt already includes -r requirements.txt
 pip install -r requirements-dev.txt
 
-# Run standalone server (port 8188 by default)
+# Standalone server (settings.json required, see below)
 python standalone.py --port 8188
 
-# Run all backend tests
+# All tests (performance tests are skipped by default)
 pytest
 
-# Run specific test file
-pytest tests/test_recipes.py
+# Include performance tests
+pytest -m performance
 
-# Run specific test function
+# Specific test
 pytest tests/test_recipes.py::test_function_name
 
-# Run backend tests with coverage
+# With coverage (as in CI)
 COVERAGE_FILE=coverage/backend/.coverage pytest \
   --cov=py --cov=standalone \
   --cov-report=term-missing \
   --cov-report=html:coverage/backend/html \
-  --cov-report=xml:coverage/backend/coverage.xml
+  --cov-report=xml:coverage/backend/coverage.xml \
+  --cov-report=json:coverage/backend/coverage.json
 ```
 
-### Frontend Development (Standalone Web UI)
+### Frontend
 
 ```bash
 npm install
-npm test                    # Run all tests (JS + Vue)
-npm run test:js             # Run JS tests only
-npm run test:watch          # Watch mode
-npm run test:coverage       # Generate coverage report
-```
+cd vue-widgets && npm install && cd ..
 
-### Vue Widget Development
+npm test                    # All tests (JS + Vue)
+npm run test:js             # JS tests only
+npm run test:vue            # Vue widget tests only
+npm run test:coverage       # Full coverage report
 
-```bash
+# Vue widgets dev
 cd vue-widgets
-npm install
 npm run dev                 # Build in watch mode
-npm run build               # Build production bundle
-npm run typecheck           # Run TypeScript type checking
-npm test                    # Run Vue widget tests
-npm run test:watch          # Watch mode
-npm run test:coverage       # Generate coverage report
+npm run build               # Production build → web/comfyui/vue-widgets/
+npm run typecheck           # TypeScript type checking (vue-tsc --noEmit)
 ```
 
-## Python Code Style
+### Localization
 
-### Imports & Formatting
+```bash
+python scripts/sync_translation_keys.py   # Run after UI string changes
+```
 
-- Use `from __future__ import annotations` for forward references
-- Group imports: standard library, third-party, local (blank line separated)
-- Absolute imports within `py/`: `from ..services import X`
-- PEP 8 with 4-space indentation, type hints required
+## Setup & Environment
 
-### Naming Conventions
+- **Standalone mode**: copy `settings.json.example` to `settings.json` and edit model folder paths. Set `"use_portable_settings": true` to keep settings next to the project root.
+- **Dual mode detection**: `os.environ.get("LORA_MANAGER_STANDALONE", "0") == "1"`
+- **ComfyUI plugin**: the root `__init__.py` auto-builds Vue widgets on import (via `py/vue_widget_builder.py`)
+- CI uses **Python 3.11** and **Node 20**
 
-- Files: `snake_case.py`, Classes: `PascalCase`, Functions/vars: `snake_case`
-- Constants: `UPPER_SNAKE_CASE`, Private: `_protected`, `__mangled`
+## Testing
 
-### Error Handling & Async
+- Backend: `pytest --import-mode=importlib -m "not performance"` (see `pytest.ini`)
+- `@pytest.mark.asyncio` for async tests; `asyncio_mode = auto` in pytest.ini
+- `@pytest.mark.no_settings_dir_isolation` to allow tests using real filesystem paths
+- `@pytest.mark.performance` for benchmarks (skipped by default)
+- Fixtures in `tests/conftest.py` mock ComfyUI dependencies; use `tmp_path_factory` for isolation
+- Frontend JS tests: `tests/frontend/**/*.test.js` (vitest + jsdom)
+- Frontend Vue tests: `vue-widgets/tests/**/*.test.ts` (vitest + @vue/test-utils)
+- `pytest.ini` norecursedirs ignores the `py/` source directory to avoid import conflicts
 
-- Use `logging.getLogger(__name__)`, define custom exceptions in `py/services/errors.py`
-- `async def` for I/O, `@pytest.mark.asyncio` for async tests
-- Singleton with `asyncio.Lock`: see `ModelScanner.get_instance()`
-- Return `aiohttp.web.json_response` or `web.Response`
+## Architecture
 
-### Testing
+### Backend
 
-- `pytest` with `--import-mode=importlib`
-- Fixtures in `tests/conftest.py`, use `tmp_path_factory` for isolation
-- Mark tests needing real paths: `@pytest.mark.no_settings_dir_isolation`
-- Mock ComfyUI dependencies via conftest patterns
+- `__init__.py` — ComfyUI plugin entry: registers nodes via `NODE_CLASS_MAPPINGS`, sets `WEB_DIRECTORY = "./web/comfyui"`
+- `standalone.py` — Standalone server: mocks `folder_paths` and node modules, starts aiohttp
+- `py/lora_manager.py` — `LoraManager` class; `ServiceRegistry` singleton for DI
+- Services (`py/services/`): `get_instance()` pattern; `BaseModelService` → LoRA, Checkpoint, Embedding
+- `ModelScanner` for file discovery with hash deduplication; `PersistentModelCache` (SQLite)
+- Routes (`py/routes/`): registrars per domain → handlers in `py/routes/handlers/` (pure functions)
+- `WebSocketManager` broadcasts real-time progress
+- Recipes: `py/recipes/base.py`, `py/recipes/parsers/`
 
-## JavaScript/TypeScript Code Style
+### Frontend — Two Separate UI Systems
 
-### Imports & Modules
+1. **Standalone Web UI**: `static/` (JS/CSS) + `templates/` (HTML) — vanilla JS, served by standalone server
+2. **ComfyUI Widgets**: `web/comfyui/*.js` (vanilla JS) + `vue-widgets/src/` (Vue 3 + TypeScript + PrimeVue)
+   - Vue builds to `web/comfyui/vue-widgets/`
+   - **Primary stylesheet**: `web/comfyui/lm_styles.css` (NOT `static/css/`)
 
-- ES modules: `import { app } from "../../scripts/app.js"` for ComfyUI
-- Vue: `import { ref, computed } from 'vue'`, type imports: `import type { Foo }`
-- Export named functions: `export function foo() {}`
+## Code Style
 
-### Naming & Formatting
+### Python
+- `from __future__ import annotations` for forward references
+- Custom exceptions in `py/services/errors.py`; loggers via `logging.getLogger(__name__)`
+- All comments in English (per `.github/copilot-instructions.md`)
 
-- camelCase for functions/vars/props, PascalCase for classes
-- Constants: `UPPER_SNAKE_CASE`, Files: `snake_case.js` or `kebab-case.js`
-- 2-space indentation preferred (follow existing file conventions)
-- Vue Single File Components: `<script setup lang="ts">` preferred
+### JavaScript/TypeScript
+- ES modules; camelCase functions, PascalCase classes
+- Vue SFC: `<script setup lang="ts">` preferred
+- Widgets: `*_widget.js` suffix; use `app.registerExtension()` + `getCustomWidgets`
 
-### Widget Development
+## Git / Commits
 
-- ComfyUI: `app.registerExtension()`, `node.addDOMWidget(name, type, element, options)`
-- Event handlers via `addEventListener` or widget callbacks
-- Shared utilities: `web/comfyui/utils.js`
-- Dual-mode rendering patterns (canvas vs Vue): see `docs/comfyui-dual-mode-widgets.md`
-
-### Vue Composables Pattern
-
-- Use composition API: `useXxxState(widget)`, return reactive refs and methods
-- Guard restoration loops with flag: `let isRestoring = false`
-- Build config from state: `const buildConfig = (): Config => { ... }`
-
-## Architecture Patterns
-
-### Service Layer
-
-- `ServiceRegistry` singleton for DI, services use `get_instance()` classmethod
-- Separate scanners (discovery) from services (business logic)
-- Handlers in `py/routes/handlers/` are pure functions with deps as params
-
-### Model Types & Routes
-
-- `BaseModelService` base for LoRA, Checkpoint, Embedding
-- `ModelScanner` for file discovery, hash deduplication
-- `PersistentModelCache` (SQLite) for persistence
-- Route registrars: `ModelRouteRegistrar`, endpoints: `/loras/*`, `/checkpoints/*`, `/embeddings/*`
-- WebSocket via `WebSocketManager` for real-time updates
-
-### Recipe System
-
-- Base: `py/recipes/base.py`, Enrichment: `RecipeEnrichmentService`
-- Parsers: `py/recipes/parsers/`
-
-## Important Notes
-
-- ALWAYS use English for comments (per copilot-instructions.md)
-- Dual mode: ComfyUI plugin (folder_paths) vs standalone (settings.json)
-- Detection: `os.environ.get("LORA_MANAGER_STANDALONE", "0") == "1"`
-- Run `python scripts/sync_translation_keys.py` after adding UI strings to `locales/en.json`
-- Symlinks require normalized paths
-
-## Git / Commit Messages
-
-- Follow the style of recent repository commits when writing commit messages
-- Prefer the repo's existing `feat(...)`, `fix(...)`, `chore:` style where applicable
-- If the user has provided a GitHub issue link or issue ID for the task, mention that issue in the commit message, for example `(#871)`
-- When unrelated local changes exist, stage and commit only the files relevant to the requested task
-
-## Frontend UI Architecture
-
-### 1. Standalone Web UI
-- Location: `./static/` and `./templates/`
-- Tech: Vanilla JS + CSS, served by standalone server
-- Tests via npm in root directory
-
-### 2. ComfyUI Custom Node Widgets
-- Location: `./web/comfyui/` (Vanilla JS) + `./vue-widgets/` (Vue)
-- Primary styles: `./web/comfyui/lm_styles.css` (NOT `./static/css/`)
-- Vue builds to `./web/comfyui/vue-widgets/`, typecheck via `vue-tsc`
+- Follow repo style: `feat(...)`, `fix(...)`, `chore:`, `docs:`
+- Mention GitHub issue references, e.g. `(#871)`
+- Symlinks require normalized paths throughout the codebase

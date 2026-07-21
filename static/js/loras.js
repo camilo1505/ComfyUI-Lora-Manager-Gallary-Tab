@@ -12,8 +12,9 @@ export class LoraPageManager {
         state.bulkMode = false;
         state.selectedLoras = new Set();
         
-        // Initialize page controls
-        this.pageControls = createPageControls('loras');
+        // Initialize page controls with the actual page type from body
+        const pageType = document.body.dataset.page || 'loras';
+        this.pageControls = createPageControls(pageType);
         
         // Initialize the ModelDuplicatesManager
         this.duplicatesManager = new ModelDuplicatesManager(this);
