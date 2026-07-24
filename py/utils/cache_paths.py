@@ -13,6 +13,8 @@ Target structure:
         │   └── {library_name}.sqlite
         ├── model_update/
         │   └── {library_name}.sqlite
+        ├── output/
+        │   └── outputs_cache.sqlite
         ├── recipe/
         │   └── {library_name}.sqlite
         └── fts/
@@ -43,6 +45,7 @@ class CacheType(Enum):
     RECIPE_FTS = "recipe_fts"
     TAG_FTS = "tag_fts"
     SYMLINK = "symlink"
+    OUTPUT = "output"
 
 
 # Subdirectory structure for each cache type
@@ -53,6 +56,7 @@ _CACHE_SUBDIRS = {
     CacheType.RECIPE_FTS: "fts",
     CacheType.TAG_FTS: "fts",
     CacheType.SYMLINK: "symlink",
+    CacheType.OUTPUT: "output",
 }
 
 # Filename patterns for each cache type
@@ -63,6 +67,7 @@ _CACHE_FILENAMES = {
     CacheType.RECIPE_FTS: "recipe_fts.sqlite",
     CacheType.TAG_FTS: "tag_fts.sqlite",
     CacheType.SYMLINK: "symlink_map.json",
+    CacheType.OUTPUT: "outputs_cache.sqlite",
 }
 
 

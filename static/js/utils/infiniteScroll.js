@@ -190,7 +190,7 @@ async function initializeVirtualScroll(pageType) {
             rowGap: 20,
             containerPaddingTop: 4,
             containerPaddingBottom: 4,
-            enableDataWindowing: false
+            enableDataWindowing: true
         });
 
         // Initialize the virtual scroller

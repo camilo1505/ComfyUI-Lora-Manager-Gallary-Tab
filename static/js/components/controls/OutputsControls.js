@@ -19,9 +19,9 @@ function buildTreeFromFolders(folders) {
 function getSelectedFilePaths() {
     const cards = document.querySelectorAll('.model-card.output-card.selected');
     return Array.from(cards).map(c => ({
+        relativePath: c.dataset.relative_path,
         path: c.dataset.filepath,
         name: c.dataset.file_name,
-        preview: c.querySelector('img')?.src || '',
     }));
 }
 
@@ -32,6 +32,18 @@ function downloadFile(url, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function removeCardsFromDOM(relativePaths) {
+    const set = new Set(relativePaths);
+    document.querySelectorAll('.model-card.output-card').forEach(card => {
+        if (set.has(card.dataset.relative_path)) {
+            card.remove();
+        }
+    });
+    if (state.virtualScroller) {
+        state.virtualScroller.removeMultipleItemsByRelativePath(relativePaths);
+    }
 }
 
 function setupBulkContextMenu() {
@@ -52,8 +64,8 @@ function setupBulkContextMenu() {
         if (action === 'download-selected') {
             const items = getSelectedFilePaths();
             for (const it of items) {
-                if (it.preview && !it.preview.includes('no-preview.png')) {
-                    downloadFile(it.preview, it.name);
+                if (it.relativePath) {
+                    downloadFile(`/outputs_static/${it.relativePath}`, it.name);
                     await new Promise(r => setTimeout(r, 200));
                 }
             }
@@ -62,14 +74,18 @@ function setupBulkContextMenu() {
             const items = getSelectedFilePaths();
             if (!items.length) return;
             if (!confirm(`Delete ${items.length} selected image(s)?`)) return;
-            let deleted = 0;
+            let deletedPaths = [];
             for (const it of items) {
                 try {
-                    const res = await fetch(`/api/lm/outputs/delete?path=${encodeURIComponent(it.path)}`, { method: 'DELETE' });
-                    if (res.ok) deleted++;
+                    const res = await fetch(`/api/lm/outputs/delete?path=${encodeURIComponent(it.relativePath)}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        deletedPaths.push(it.relativePath);
+                    }
                 } catch (err) { console.error('Delete failed:', it.name, err); }
             }
-            if (deleted > 0) await refreshVirtualScroll();
+            if (deletedPaths.length > 0) {
+                removeCardsFromDOM(deletedPaths);
+            }
         }
     });
 }
@@ -154,13 +170,13 @@ export class OutputsControls {
         return {
             apiConfig: { config: { displayName: 'Outputs' } },
             async fetchUnifiedFolderTree() {
-                const res = await fetch('/api/lm/outputs/list?page_size=1');
+                const res = await fetch('/api/lm/outputs/folders');
                 const data = await res.json();
                 const folders = data.folders || [];
                 return { success: true, tree: buildTreeFromFolders(folders) };
             },
             async fetchModelFolders() {
-                const res = await fetch('/api/lm/outputs/list?page_size=1');
+                const res = await fetch('/api/lm/outputs/folders');
                 const data = await res.json();
                 return { folders: data.folders || [] };
             },

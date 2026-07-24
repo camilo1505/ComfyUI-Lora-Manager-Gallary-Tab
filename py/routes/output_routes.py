@@ -1,7 +1,9 @@
+import io
 import logging
 import os
 import jinja2
 from aiohttp import web
+from PIL import Image
 
 from ..config import config
 from ..services.settings_manager import get_settings_manager
@@ -43,6 +45,19 @@ def _get_output_dir():
 
     fallback = os.path.join(os.path.dirname(__file__), "..", "..", "output")
     return os.path.abspath(fallback)
+
+
+_THUMBNAIL_MAX_SIZE = 300
+
+
+def _generate_thumbnail(file_path: str, size: int = _THUMBNAIL_MAX_SIZE) -> bytes:
+    img = Image.open(file_path)
+    img.thumbnail((size, size), Image.LANCZOS)
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return buf.getvalue()
 
 
 class OutputRoutes:
@@ -149,20 +164,66 @@ class OutputRoutes:
             logger.error(f"Error listing outputs: {e}", exc_info=True)
             return web.json_response({"error": str(e)}, status=500)
 
+    async def handle_thumbnail(self, request: web.Request) -> web.Response:
+        try:
+            path = request.query.get("path", "")
+            if not path:
+                return web.Response(status=400, text="path required")
+
+            output_dir = _get_output_dir()
+            full_path = os.path.normpath(os.path.join(output_dir, path))
+            if not full_path.startswith(os.path.normpath(output_dir)):
+                return web.Response(status=403, text="invalid path")
+
+            if not os.path.isfile(full_path):
+                return web.Response(status=404, text="file not found")
+
+            size = int(request.query.get("size", str(_THUMBNAIL_MAX_SIZE)))
+            size = max(50, min(size, 600))
+
+            data = _generate_thumbnail(full_path, size)
+            return web.Response(body=data, content_type="image/jpeg")
+
+        except Exception as e:
+            logger.error(f"Error generating thumbnail: {e}", exc_info=True)
+            return web.Response(status=500, text=str(e))
+
+    async def handle_detail(self, request: web.Request) -> web.Response:
+        try:
+            path = request.query.get("path", "")
+            if not path:
+                return web.json_response({"error": "path required"}, status=400)
+
+            service = self._get_service()
+            detail = service.get_output_detail(path)
+            if not detail:
+                return web.json_response({"error": "not found"}, status=404)
+
+            return web.json_response(detail)
+
+        except Exception as e:
+            logger.error(f"Error getting output detail: {e}", exc_info=True)
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_folders(self, request: web.Request) -> web.Response:
+        try:
+            service = self._get_service()
+            tree = service.get_folder_tree()
+            return web.json_response({"folders": list(tree.keys()), "tree": tree})
+        except Exception as e:
+            logger.error(f"Error listing output folders: {e}", exc_info=True)
+            return web.json_response({"error": str(e)}, status=500)
+
     async def handle_delete(self, request: web.Request) -> web.Response:
         try:
             path = request.query.get("path", "")
             if not path:
                 return web.json_response({"error": "path required"}, status=400)
 
-            output_dir = _get_output_dir()
-            full_path = os.path.normpath(os.path.join(output_dir, path))
-            if not full_path.startswith(os.path.normpath(output_dir)):
-                return web.json_response({"error": "invalid path"}, status=403)
-
-            if os.path.isfile(full_path):
-                os.remove(full_path)
-                return web.json_response({"success": True})
+            service = self._get_service()
+            success = service.delete_by_path(path)
+            if success:
+                return web.json_response({"success": True, "path": path})
             return web.json_response({"error": "file not found"}, status=404)
 
         except Exception as e:
@@ -177,4 +238,7 @@ class OutputRoutes:
 
         app.router.add_get("/outputs", self.handle_outputs_page)
         app.router.add_get("/api/lm/outputs/list", self.handle_list)
+        app.router.add_get("/api/lm/outputs/thumbnail", self.handle_thumbnail)
+        app.router.add_get("/api/lm/outputs/detail", self.handle_detail)
+        app.router.add_get("/api/lm/outputs/folders", self.handle_folders)
         app.router.add_delete("/api/lm/outputs/delete", self.handle_delete)

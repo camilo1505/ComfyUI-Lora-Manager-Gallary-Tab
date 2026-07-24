@@ -2,9 +2,11 @@ import os
 import re
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Dict, List, Optional, Set
 
 from PIL import Image
+
+from .outputs_cache_service import OutputsCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +107,41 @@ def _extract_file_metadata(file_path: str) -> dict:
     return {"has_metadata": False}
 
 
+def _make_cache_key(entry_path: str, stat) -> tuple:
+    return (os.path.getmtime(entry_path) if hasattr(stat, 'st_mtime') else stat.st_mtime, stat.st_size)
+
+
+def _make_image_dict(filename: str, full_path: str, rel: str, stat, meta: dict) -> dict:
+    resolution = meta.get("size", "")
+    return {
+        "filename": filename,
+        "file_name": filename,
+        "relative_path": rel,
+        "file_path": full_path.replace(os.sep, "/"),
+        "preview_url": f"/outputs_static/{rel}",
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+        "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+        "resolution": resolution,
+        "sampler": meta.get("sampler", ""),
+        "cfg": float(meta["cfg_scale"]) if meta.get("cfg_scale") else None,
+        "steps": int(meta["steps"]) if meta.get("steps") else None,
+        "seed": int(meta["seed"]) if meta.get("seed") else None,
+        "checkpoint": meta.get("checkpoint", ""),
+        "prompt": meta.get("prompt", ""),
+        "negative_prompt": meta.get("negative_prompt", ""),
+        "has_metadata": meta.get("has_metadata", False),
+    }
+
+
+def _build_preview_url(relative_path: str) -> str:
+    return f"/outputs_static/{relative_path}"
+
+
 class OutputsService:
     def __init__(self, output_dir: str):
         self._output_dir = output_dir
+        self._cache = OutputsCacheService.get_instance()
 
     def _get_output_dir(self) -> str:
         return self._output_dir
@@ -130,8 +164,9 @@ class OutputsService:
         if not os.path.isdir(scan_dir):
             return {"images": [], "total": 0, "total_pages": 0, "folders": [], "items": []}
 
-        images = []
-        folders_set = set()
+        # Walk filesystem to discover current state
+        discovered: List[Dict] = []
+        folders_set: Set[str] = set()
 
         if folder:
             for entry in os.scandir(scan_dir):
@@ -142,7 +177,14 @@ class OutputsService:
                 if ext not in IMAGE_EXTENSIONS:
                     continue
                 stat = entry.stat()
-                images.append(self._build_entry(entry, folder, stat))
+                rel = os.path.join(folder, entry.name).replace(os.sep, "/")
+                discovered.append({
+                    "filename": entry.name,
+                    "full_path": entry.path,
+                    "relative_path": rel,
+                    "folder": folder,
+                    "stat": stat,
+                })
         else:
             for root, dirs, files in os.walk(scan_dir):
                 rel = os.path.relpath(root, output_dir)
@@ -156,20 +198,96 @@ class OutputsService:
                     full_path = os.path.join(root, f)
                     stat = os.stat(full_path)
                     subfolder = rel if rel != "." else None
-                    images.append(self._build_entry_file(f, full_path, subfolder, stat))
+                    discovered.append({
+                        "filename": f,
+                        "full_path": full_path,
+                        "relative_path": os.path.join(subfolder, f).replace(os.sep, "/") if subfolder else f,
+                        "folder": subfolder or "",
+                        "stat": stat,
+                    })
 
+        # Extract metadata: use cache for unchanged files, PIL for new/changed
+        cached_paths = {d["relative_path"]: d for d in discovered}
+        existing = self._cache.get_cache_entries(list(cached_paths.keys())) if self._cache.is_cache_populated() else {}
 
+        new_entries: List[Dict] = []
+        for d in discovered:
+            rel = d["relative_path"]
+            cached = existing.get(rel)
+            if cached and cached["mtime"] == d["stat"].st_mtime and cached["size"] == d["stat"].st_size:
+                meta = {
+                    "has_metadata": bool(cached["has_metadata"]),
+                    "sampler": cached["sampler"] or "",
+                    "cfg_scale": str(cached["cfg"]) if cached["cfg"] is not None else None,
+                    "steps": str(cached["steps"]) if cached["steps"] is not None else None,
+                    "seed": str(cached["seed"]) if cached["seed"] is not None else None,
+                    "size": cached["resolution"] or "",
+                }
+                model_name_val = cached.get("checkpoint", "")
+                if model_name_val:
+                    meta["checkpoint"] = model_name_val
+                meta_prompt = cached.get("prompt", "")
+                meta_neg = cached.get("negative_prompt", "")
+                if meta_prompt:
+                    meta["prompt"] = meta_prompt
+                if meta_neg:
+                    meta["negative_prompt"] = meta_neg
+            else:
+                meta = _extract_file_metadata(d["full_path"])
+                new_entries.append({
+                    "filename": d["filename"],
+                    "file_path": d["full_path"].replace(os.sep, "/"),
+                    "relative_path": rel,
+                    "folder": d["folder"],
+                    "size": d["stat"].st_size,
+                    "mtime": d["stat"].st_mtime,
+                    "created_at": datetime.fromtimestamp(d["stat"].st_ctime).isoformat(),
+                    "sampler": meta.get("sampler", ""),
+                    "cfg": float(meta["cfg_scale"]) if meta.get("cfg_scale") else None,
+                    "steps": int(meta["steps"]) if meta.get("steps") else None,
+                    "seed": int(meta["seed"]) if meta.get("seed") else None,
+                    "checkpoint": meta.get("checkpoint", ""),
+                    "resolution": meta.get("size", ""),
+                    "prompt": meta.get("prompt", ""),
+                    "negative_prompt": meta.get("negative_prompt", ""),
+                    "has_metadata": meta.get("has_metadata", False),
+                })
+
+        # Cache newly extracted metadata
+        if new_entries:
+            self._cache.cache_outputs(new_entries)
+
+        # Purge stale entries (files in cache but no longer on disk)
+        discovered_paths = {d["relative_path"] for d in discovered}
+        stale = [rel for rel in existing if rel not in discovered_paths]
+        if stale:
+            self._cache._delete_batch(stale)
+
+        # Build full dicts for the response
+        all_images = []
+        for d in discovered:
+            rel = d["relative_path"]
+            cached = existing.get(rel)
+            if cached and cached["mtime"] == d["stat"].st_mtime and cached["size"] == d["stat"].st_size:
+                all_images.append(self._build_from_cache(cached, rel))
+            else:
+                for ne in new_entries:
+                    if ne["relative_path"] == rel:
+                        all_images.append(ne)
+                        break
+
+        # Sort
         reverse = order == "desc"
         if sort == "created_at":
-            images.sort(key=lambda x: x["created_at"], reverse=reverse)
+            all_images.sort(key=lambda x: x["created_at"], reverse=reverse)
         else:
-            images.sort(key=lambda x: x["filename"].lower(), reverse=reverse)
+            all_images.sort(key=lambda x: x["filename"].lower(), reverse=reverse)
 
-        total = len(images)
+        total = len(all_images)
         total_pages = max(1, (total + page_size - 1) // page_size)
         start = (page - 1) * page_size
         end = start + page_size
-        paged = images[start:end]
+        paged = all_images[start:end]
 
         return {
             "images": paged,
@@ -179,50 +297,63 @@ class OutputsService:
             "items": paged,
         }
 
-    def _build_entry(self, entry, folder, stat):
-        rel = (
-            os.path.join(folder, entry.name).replace(os.sep, "/")
-            if folder
-            else entry.name
-        )
-        meta = _extract_file_metadata(entry.path)
-        return self._make_image_dict(entry.name, entry.path, rel, stat, meta)
-
-    def _build_entry_file(self, filename, full_path, folder, stat):
-        rel = (
-            os.path.join(folder, filename).replace(os.sep, "/")
-            if folder
-            else filename
-        )
-        meta = _extract_file_metadata(full_path)
-        return self._make_image_dict(filename, full_path, rel, stat, meta)
-
-    def _make_image_dict(self, filename, full_path, rel, stat, meta):
-        resolution = meta.get("size", "")
+    def _build_from_cache(self, cached: dict, relative_path: str) -> dict:
         return {
-            "filename": filename,
-            "file_name": filename,
-            "relative_path": rel,
-            "file_path": full_path.replace(os.sep, "/"),
-            "preview_url": f"/outputs_static/{rel}",
-            "size": stat.st_size,
-            "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
-            "resolution": resolution,
-            "sampler": meta.get("sampler", ""),
-            "cfg": float(meta["cfg_scale"]) if meta.get("cfg_scale") else None,
-            "steps": int(meta["steps"]) if meta.get("steps") else None,
-            "seed": int(meta["seed"]) if meta.get("seed") else None,
-            "checkpoint": meta.get("checkpoint", ""),
-            "prompt": meta.get("prompt", ""),
-            "negative_prompt": meta.get("negative_prompt", ""),
-            "has_metadata": meta.get("has_metadata", False),
+            "filename": cached["filename"],
+            "file_name": cached["filename"],
+            "relative_path": relative_path,
+            "file_path": cached["file_path"],
+            "preview_url": _build_preview_url(relative_path),
+            "size": cached["size"],
+            "created_at": cached["created_at"],
+            "resolution": cached["resolution"] or "",
+            "sampler": cached["sampler"] or "",
+            "cfg": cached["cfg"],
+            "steps": cached["steps"],
+            "seed": cached["seed"],
+            "checkpoint": cached.get("checkpoint", ""),
+            "prompt": "",
+            "negative_prompt": "",
+            "has_metadata": bool(cached["has_metadata"]),
         }
+
+    def get_output_detail(self, relative_path: str) -> Optional[Dict]:
+        cached = self._cache.get_output_detail(relative_path)
+        if not cached:
+            return None
+        return {
+            "filename": cached["filename"],
+            "file_name": cached["filename"],
+            "relative_path": relative_path,
+            "file_path": cached["file_path"],
+            "preview_url": _build_preview_url(relative_path),
+            "size": cached["size"],
+            "created_at": cached["created_at"],
+            "resolution": cached["resolution"] or "",
+            "sampler": cached["sampler"] or "",
+            "cfg": cached["cfg"],
+            "steps": cached["steps"],
+            "seed": cached["seed"],
+            "checkpoint": cached.get("checkpoint", ""),
+            "prompt": cached.get("prompt", ""),
+            "negative_prompt": cached.get("negative_prompt", ""),
+            "has_metadata": bool(cached["has_metadata"]),
+        }
+
+    def delete_by_path(self, relative_path: str) -> bool:
+        full_path = os.path.normpath(os.path.join(self._output_dir, relative_path))
+        if not full_path.startswith(os.path.normpath(self._output_dir)):
+            return False
+        if os.path.isfile(full_path):
+            os.remove(full_path)
+            self._cache.delete_by_path(relative_path)
+            return True
+        return False
 
     def get_folder_tree(self) -> dict:
         output_dir = self._get_output_dir()
         if not os.path.isdir(output_dir):
             return {}
-
         tree = {}
         for entry in os.scandir(output_dir):
             if entry.is_dir():

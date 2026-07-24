@@ -16,20 +16,32 @@ function downloadFile(url, filename) {
     document.body.removeChild(link);
 }
 
-function showCardModal(card) {
-    const img = card.querySelector('img');
-    const src = img ? img.src : '';
+function getThumbnailUrl(relativePath) {
+    return `/api/lm/outputs/thumbnail?path=${encodeURIComponent(relativePath)}&size=300`;
+}
+
+function getFullImageUrl(relativePath) {
+    return `/outputs_static/${relativePath}`;
+}
+
+async function loadFullMetadata(relativePath) {
+    try {
+        const res = await fetch(`/api/lm/outputs/detail?path=${encodeURIComponent(relativePath)}`);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+async function showCardModal(card) {
     const dataset = card.dataset;
+    const relativePath = dataset.relative_path || '';
 
-    if (!src || src.includes('no-preview.png')) return;
+    if (!relativePath) return;
 
+    const fullSrc = getFullImageUrl(relativePath);
     const fileName = dataset.file_name || 'Unknown';
-    const resolution = dataset.resolution || '';
-    const sampler = dataset.sampler || '';
-    const cfg = dataset.cfg || '';
-    const steps = dataset.steps || '';
-    const seed = dataset.seed || '';
-    const checkpoint = dataset.checkpoint || '';
 
     const content = `
         <div class="modal-content">
@@ -46,36 +58,30 @@ function showCardModal(card) {
                 </div>
             </header>
             <div class="modal-body output-modal-body">
-                <img src="${src}" alt="${fileName}" class="output-modal-preview">
+                <img src="${fullSrc}" alt="${fileName}" class="output-modal-preview">
                 <div class="output-modal-info">
-                <div class="info-section">
-                    <div class="info-grid">
-                        <div class="info-item full-width">
-                            <label>Prompt</label>
-                            <div class="output-prompt-box" data-copy="${dataset.prompt ? dataset.prompt.replace(/"/g, '&quot;') : ''}">
-                                <span>${dataset.prompt ? dataset.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') : 'No prompt metadata'}</span>
-                                ${dataset.prompt ? '<i class="fas fa-copy output-copy-icon"></i>' : ''}
+                    <div class="info-section">
+                        <div class="info-grid" id="outputDetailGrid">
+                            <div class="info-item full-width">
+                                <label>Prompt</label>
+                                <div class="output-prompt-box" id="outputPromptBox"><span>Loading...</span></div>
                             </div>
-                        </div>
-                        <div class="info-item full-width">
-                            <label>Negative Prompt</label>
-                            <div class="output-prompt-box" data-copy="${dataset.negative_prompt ? dataset.negative_prompt.replace(/"/g, '&quot;') : ''}">
-                                <span>${dataset.negative_prompt ? dataset.negative_prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'No negative prompt metadata'}</span>
-                                ${dataset.negative_prompt ? '<i class="fas fa-copy output-copy-icon"></i>' : ''}
+                            <div class="info-item full-width">
+                                <label>Negative Prompt</label>
+                                <div class="output-prompt-box" id="outputNegPromptBox"><span>Loading...</span></div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="info-section">
-                    <div class="info-grid">
-                        ${resolution ? `<div class="info-item"><label>Resolution</label><span>${resolution}</span></div>` : ''}
-                        ${sampler ? `<div class="info-item"><label>Sampler</label><span>${sampler}</span></div>` : ''}
-                        ${cfg ? `<div class="info-item"><label>CFG</label><span>${cfg}</span></div>` : ''}
-                        ${steps ? `<div class="info-item"><label>Steps</label><span>${steps}</span></div>` : ''}
-                        ${seed ? `<div class="info-item"><label>Seed</label><code>${seed}</code></div>` : ''}
-                        ${checkpoint ? `<div class="info-item"><label>Model</label><span>${checkpoint}</span></div>` : ''}
+                    <div class="info-section" id="outputMetaSection">
+                        <div class="info-grid" id="outputMetaGrid">
+                            <div class="info-item"><label>Resolution</label><span id="detailResolution">${dataset.resolution || ''}</span></div>
+                            <div class="info-item"><label>Sampler</label><span id="detailSampler">${dataset.sampler || ''}</span></div>
+                            <div class="info-item"><label>CFG</label><span id="detailCfg">${dataset.cfg || ''}</span></div>
+                            <div class="info-item"><label>Steps</label><span id="detailSteps">${dataset.steps || ''}</span></div>
+                            <div class="info-item"><label>Seed</label><code id="detailSeed">${dataset.seed || ''}</code></div>
+                            <div class="info-item"><label>Model</label><span id="detailCheckpoint">${dataset.checkpoint || ''}</span></div>
+                        </div>
                     </div>
-                </div>
                 </div>
             </div>
         </div>
@@ -83,20 +89,59 @@ function showCardModal(card) {
 
     modalManager.showModal('modelModal', content, null, () => {});
 
-    setTimeout(() => {
-        document.querySelectorAll('.output-prompt-box[data-copy]').forEach(el => {
-            el.addEventListener('click', () => {
-                const val = el.dataset.copy;
-                if (!val) return;
-                navigator.clipboard.writeText(val);
-                const icon = el.querySelector('.output-copy-icon');
-                if (icon) {
-                    icon.className = 'fas fa-check output-copy-icon';
-                    setTimeout(() => { icon.className = 'fas fa-copy output-copy-icon'; }, 1500);
-                }
-            });
+    const fullData = await loadFullMetadata(relativePath);
+    if (fullData) {
+        const promptBox = document.getElementById('outputPromptBox');
+        const negBox = document.getElementById('outputNegPromptBox');
+        if (promptBox) {
+            const prompt = fullData.prompt || '';
+            promptBox.innerHTML = prompt
+                ? `<span>${prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</span><i class="fas fa-copy output-copy-icon"></i>`
+                : '<span>No prompt metadata</span>';
+            promptBox.dataset.copy = prompt.replace(/"/g, '&quot;');
+        }
+        if (negBox) {
+            const neg = fullData.negative_prompt || '';
+            negBox.innerHTML = neg
+                ? `<span>${neg.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span><i class="fas fa-copy output-copy-icon"></i>`
+                : '<span>No negative prompt metadata</span>';
+            negBox.dataset.copy = neg.replace(/"/g, '&quot;');
+        }
+        const detailCfg = document.getElementById('detailCfg');
+        if (detailCfg && fullData.cfg != null) detailCfg.textContent = fullData.cfg;
+        const detailSteps = document.getElementById('detailSteps');
+        if (detailSteps && fullData.steps != null) detailSteps.textContent = fullData.steps;
+        const detailSeed = document.getElementById('detailSeed');
+        if (detailSeed && fullData.seed != null) detailSeed.textContent = fullData.seed;
+        const detailCheckpoint = document.getElementById('detailCheckpoint');
+        if (detailCheckpoint && fullData.checkpoint) detailCheckpoint.textContent = fullData.checkpoint;
+        const detailResolution = document.getElementById('detailResolution');
+        if (detailResolution && fullData.resolution) detailResolution.textContent = fullData.resolution;
+        const detailSampler = document.getElementById('detailSampler');
+        if (detailSampler && fullData.sampler) detailSampler.textContent = fullData.sampler;
+
+        setupCopyIcons();
+    } else {
+        const promptBox = document.getElementById('outputPromptBox');
+        const negBox = document.getElementById('outputNegPromptBox');
+        if (promptBox) promptBox.innerHTML = '<span>No prompt metadata</span>';
+        if (negBox) negBox.innerHTML = '<span>No negative prompt metadata</span>';
+    }
+}
+
+function setupCopyIcons() {
+    document.querySelectorAll('.output-prompt-box[data-copy]').forEach(el => {
+        el.addEventListener('click', () => {
+            const val = el.dataset.copy;
+            if (!val) return;
+            navigator.clipboard.writeText(val);
+            const icon = el.querySelector('.output-copy-icon');
+            if (icon) {
+                icon.className = 'fas fa-check output-copy-icon';
+                setTimeout(() => { icon.className = 'fas fa-copy output-copy-icon'; }, 1500);
+            }
         });
-    }, 100);
+    });
 }
 
 export function setupOutputCardEventDelegation() {
@@ -132,11 +177,10 @@ export function setupOutputCardEventDelegation() {
 
         if (event.target.closest('.fa-download')) {
             event.stopPropagation();
-            const img = card.querySelector('img');
-            const url = img ? img.src : '';
+            const relativePath = card.dataset.relative_path || '';
             const filename = card.dataset.file_name || 'download.png';
-            if (url && !url.includes('no-preview.png')) {
-                downloadFile(url, filename);
+            if (relativePath) {
+                downloadFile(getFullImageUrl(relativePath), filename);
             }
             return;
         }
@@ -165,6 +209,7 @@ export function createOutputCard(output) {
     card.className = 'model-card output-card';
     card.draggable = true;
     card.dataset.filepath = output.file_path || '';
+    card.dataset.relative_path = output.relative_path || '';
     card.dataset.file_name = output.filename || output.file_name || '';
     card.dataset.folder = output.folder || '';
     card.dataset.file_size = output.size || output.file_size || 0;
@@ -174,8 +219,6 @@ export function createOutputCard(output) {
     card.dataset.steps = String(output.steps ?? '');
     card.dataset.seed = String(output.seed ?? '');
     card.dataset.has_metadata = output.has_metadata ? 'true' : 'false';
-    card.dataset.prompt = output.prompt || '';
-    card.dataset.negative_prompt = output.negative_prompt || '';
     card.dataset.checkpoint = output.checkpoint || '';
 
     const nsfwLevel = output.preview_nsfw_level !== undefined ? output.preview_nsfw_level : 0;
@@ -187,7 +230,8 @@ export function createOutputCard(output) {
         card.classList.add('nsfw-content');
     }
 
-    const previewUrl = output.preview_url || '/loras_static/images/no-preview.png';
+    const relativePath = output.relative_path || '';
+    const thumbUrl = getThumbnailUrl(relativePath);
 
     let nsfwText = translate('modelCard.nsfw.matureContent', {}, 'Mature Content');
     if (nsfwLevel >= NSFW_LEVELS.XXX) {
@@ -213,7 +257,7 @@ export function createOutputCard(output) {
 
     card.innerHTML = `
         <div class="card-preview ${shouldBlur ? 'blurred' : ''}">
-            <img src="${previewUrl}" alt="${getOutputFileName(output)}"
+            <img src="${thumbUrl}" alt="${getOutputFileName(output)}" loading="lazy"
                  onerror="this.onerror=null; this.src='/loras_static/images/no-preview.png'">
             <div class="card-header">
                 <div class="card-header-info">

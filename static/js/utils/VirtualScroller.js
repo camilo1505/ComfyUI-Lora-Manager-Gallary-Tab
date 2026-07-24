@@ -189,7 +189,7 @@ export class VirtualScroller {
 
     setupEventListeners() {
         // Debounced scroll handler
-        this.scrollHandler = this.debounce(() => this.handleScroll(), 10);
+        this.scrollHandler = this.debounce(() => this.handleScroll(), 80);
         this.scrollContainer.addEventListener('scroll', this.scrollHandler);
 
         // Window resize handler for layout recalculation
@@ -1073,6 +1073,30 @@ export class VirtualScroller {
     findIndexByFilePath(filePath) {
         if (!filePath) return -1;
         return this.items.findIndex(item => item.file_path === filePath);
+    }
+
+    /**
+     * Remove multiple items by their relative_path.
+     * @param {string[]} relativePaths
+     * @returns {boolean}
+     */
+    removeMultipleItemsByRelativePath(relativePaths) {
+        if (!Array.isArray(relativePaths) || relativePaths.length === 0 || this.disabled || this.items.length === 0) return false;
+
+        const pathsToRemove = new Set(relativePaths);
+        const originalLength = this.items.length;
+
+        this.items = this.items.filter(item => !pathsToRemove.has(item.relative_path));
+
+        const removedCount = originalLength - this.items.length;
+        if (removedCount === 0) return false;
+
+        this.totalItems = Math.max(0, this.totalItems - removedCount);
+        this.updateSpacerHeight();
+        this.clearRenderedItems();
+        this.scheduleRender();
+
+        return true;
     }
 
     /**
