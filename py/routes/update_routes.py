@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import toml
 import zipfile
@@ -6,13 +7,34 @@ import shutil
 import tempfile
 import asyncio
 from aiohttp import web, ClientError
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from ..utils.settings_paths import ensure_settings_file
 from ..services.downloader import get_downloader
 from ..services.service_registry import ServiceRegistry
 
 logger = logging.getLogger(__name__)
+
+
+def _get_plugin_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _get_repo_info() -> Tuple[str, str]:
+    """Extract owner/name from git remote origin, fall back to defaults."""
+    plugin_root = _get_plugin_root()
+    try:
+        if os.path.exists(os.path.join(plugin_root, ".git")):
+            import git
+            repo = git.Repo(plugin_root)
+            origin_url = repo.remotes.origin.url
+            match = re.search(r"github\.com[:/]([^/]+)/([^/\s.]+?)(?:\.git)?$", origin_url)
+            if match:
+                return match.group(1), match.group(2)
+    except Exception:
+        pass
+    return "willmiao", "ComfyUI-Lora-Manager"
+
 
 NETWORK_EXCEPTIONS = (ClientError, OSError, asyncio.TimeoutError)
 
@@ -196,8 +218,7 @@ class UpdateRoutes:
         Download latest release ZIP from GitHub and replace plugin files.
         Skips settings.json and civitai folder. Writes extracted file list to .tracking.
         """
-        repo_owner = "willmiao"
-        repo_name = "ComfyUI-Lora-Manager"
+        repo_owner, repo_name = _get_repo_info()
         github_api = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
 
         try:
@@ -312,8 +333,7 @@ class UpdateRoutes:
         """
         Fetch latest commit from main branch
         """
-        repo_owner = "willmiao"
-        repo_name = "ComfyUI-Lora-Manager"
+        repo_owner, repo_name = _get_repo_info()
         
         # Use GitHub API to fetch the latest commit from main branch
         github_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits/main"
@@ -505,8 +525,7 @@ class UpdateRoutes:
         Returns:
             tuple: (version string, changelog list, releases list)
         """
-        repo_owner = "willmiao"
-        repo_name = "ComfyUI-Lora-Manager"
+        repo_owner, repo_name = _get_repo_info()
         
         # Use GitHub API to fetch the last 5 releases
         github_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases?per_page=5"
