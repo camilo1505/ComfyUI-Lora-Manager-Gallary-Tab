@@ -18,12 +18,15 @@
                     </optgroup>
                 </select>
             </div>
-            <div class="control-group">
-                <button id="refreshButton" data-action="refresh" title="{{ t('loras.controls.refresh.title') }}"><i class="fas fa-sync"></i> <span>{{ t('common.actions.refresh') }}</span></button>
+            <div title="{{ t('loras.controls.refresh.title') }}" class="control-group">
+                <button id="refreshButton" class="dropdown-main" data-action="refresh">
+                    <i class="fas fa-sync"></i> <span>{{ t('common.actions.refresh') }}</span>
+                </button>
             </div>
-            <div class="control-group">
-                <button id="bulkOperationsBtn" data-action="bulk" title="{{ t('loras.controls.bulk.title') }}">
+            <div title="{{ t('loras.controls.bulk.title') }}" class="control-group">
+                <button id="bulkOperationsBtn" data-action="bulk">
                     <i class="fas fa-th-large"></i> <span>{{ t('loras.controls.bulk.action') }}</span>
+                    <span class="shortcut-key">B</span>
                 </button>
             </div>
         </div>

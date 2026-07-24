@@ -34,6 +34,50 @@ async function loadFullMetadata(relativePath) {
     }
 }
 
+function getOutputCards() {
+    return Array.from(document.querySelectorAll('.model-card.output-card'));
+}
+
+function navigateToCard(cards, index) {
+    if (!cards[index]) return;
+    modalManager.closeModal('modelModal');
+    showCardModal(cards[index]);
+}
+
+function setupModalNavigation(currentIndex) {
+    const cards = getOutputCards();
+    const total = cards.length;
+
+    const prevBtn = document.querySelector('.modal-nav-btn[title="Previous"]');
+    const nextBtn = document.querySelector('.modal-nav-btn[title="Next"]');
+
+    if (prevBtn) {
+        prevBtn.disabled = currentIndex <= 0;
+        prevBtn.onclick = (e) => { e.stopPropagation(); navigateToCard(cards, currentIndex - 1); };
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentIndex >= total - 1;
+        nextBtn.onclick = (e) => { e.stopPropagation(); navigateToCard(cards, currentIndex + 1); };
+    }
+
+    const keyHandler = (e) => {
+        if (e.key === 'ArrowLeft' && prevBtn && !prevBtn.disabled) {
+            e.preventDefault();
+            navigateToCard(cards, currentIndex - 1);
+        } else if (e.key === 'ArrowRight' && nextBtn && !nextBtn.disabled) {
+            e.preventDefault();
+            navigateToCard(cards, currentIndex + 1);
+        }
+    };
+    document.addEventListener('keydown', keyHandler);
+    const cleanup = () => document.removeEventListener('keydown', keyHandler);
+    const closeBtn = document.querySelector('.modal-content .close');
+    if (closeBtn) {
+        const origClose = closeBtn.onclick;
+        closeBtn.onclick = (e) => { cleanup(); if (origClose) origClose(e); };
+    }
+}
+
 async function showCardModal(card) {
     const dataset = card.dataset;
     const relativePath = dataset.relative_path || '';
@@ -63,23 +107,24 @@ async function showCardModal(card) {
                     <div class="info-section">
                         <div class="info-grid" id="outputDetailGrid">
                             <div class="info-item full-width">
-                                <label>Prompt</label>
-                                <div class="output-prompt-box" id="outputPromptBox"><span>Loading...</span></div>
+                                <label><i class="fas fa-quote-left"></i> Prompt</label>
+                                <div class="output-prompt-box" id="outputPromptBox"><span style="opacity:0.5; font-style:italic;">Loading...</span></div>
                             </div>
                             <div class="info-item full-width">
-                                <label>Negative Prompt</label>
-                                <div class="output-prompt-box" id="outputNegPromptBox"><span>Loading...</span></div>
+                                <label><i class="fas fa-quote-right"></i> Negative Prompt</label>
+                                <div class="output-prompt-box" id="outputNegPromptBox"><span style="opacity:0.5; font-style:italic;">Loading...</span></div>
                             </div>
                         </div>
                     </div>
                     <div class="info-section" id="outputMetaSection">
+                        <div class="section-title"><i class="fas fa-info-circle"></i> Parameters</div>
                         <div class="info-grid" id="outputMetaGrid">
-                            <div class="info-item"><label>Resolution</label><span id="detailResolution">${dataset.resolution || ''}</span></div>
-                            <div class="info-item"><label>Sampler</label><span id="detailSampler">${dataset.sampler || ''}</span></div>
-                            <div class="info-item"><label>CFG</label><span id="detailCfg">${dataset.cfg || ''}</span></div>
-                            <div class="info-item"><label>Steps</label><span id="detailSteps">${dataset.steps || ''}</span></div>
-                            <div class="info-item"><label>Seed</label><code id="detailSeed">${dataset.seed || ''}</code></div>
-                            <div class="info-item"><label>Model</label><span id="detailCheckpoint">${dataset.checkpoint || ''}</span></div>
+                            <div class="info-item"><label>Resolution</label><span id="detailResolution" class="param-value">${dataset.resolution || '—'}</span></div>
+                            <div class="info-item"><label>Sampler</label><span id="detailSampler" class="param-value">${dataset.sampler || '—'}</span></div>
+                            <div class="info-item"><label>CFG</label><span id="detailCfg" class="param-value">${dataset.cfg || '—'}</span></div>
+                            <div class="info-item"><label>Steps</label><span id="detailSteps" class="param-value">${dataset.steps || '—'}</span></div>
+                            <div class="info-item"><label>Seed</label><code id="detailSeed" class="param-value">${dataset.seed || '—'}</code></div>
+                            <div class="info-item"><label>Model</label><span id="detailCheckpoint" class="param-value">${dataset.checkpoint || '—'}</span></div>
                         </div>
                     </div>
                 </div>
@@ -88,6 +133,10 @@ async function showCardModal(card) {
     `;
 
     modalManager.showModal('modelModal', content, null, () => {});
+
+    const allCards = getOutputCards();
+    const currentIndex = allCards.indexOf(card);
+    setupModalNavigation(currentIndex);
 
     const fullData = await loadFullMetadata(relativePath);
     if (fullData) {
@@ -270,9 +319,8 @@ export function createOutputCard(output) {
                     </span>
                 </div>
                 <div class="card-actions">
-                    <i class="far fa-heart output-action" title="Favorite"></i>
-                    <i class="fas fa-download output-action" title="Download"></i>
-                    <i class="fas fa-eye output-blur-toggle" title="Toggle blur"></i>
+                    <i class="fas fa-download" title="Download"></i>
+                    <i class="fas fa-eye output-blur-toggle" title="${toggleBlurTitle}"></i>
                 </div>
             </div>
             ${shouldBlur ? `
