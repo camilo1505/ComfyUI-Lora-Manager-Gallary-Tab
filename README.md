@@ -1,3 +1,11 @@
+# ComfyUI LoRA Manager — Outputs Gallery Tab Fork
+
+> **⚠️ This is a personal fork** that adds an **Outputs Gallery** tab to browse generated images with embedded metadata (prompt, sampler, seed, etc.).
+>
+> If you **don't** need this feature, use the original repository: [willmiao/ComfyUI-Lora-Manager](https://github.com/willmiao/ComfyUI-Lora-Manager)
+
+---
+
 # ComfyUI LoRA Manager
 
 > **Revolutionize your workflow with the ultimate LoRA companion for ComfyUI!**
