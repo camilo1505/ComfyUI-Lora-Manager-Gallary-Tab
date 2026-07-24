@@ -106,8 +106,67 @@ python scripts/sync_translation_keys.py   # Run after UI string changes
 - Vue SFC: `<script setup lang="ts">` preferred
 - Widgets: `*_widget.js` suffix; use `app.registerExtension()` + `getCustomWidgets`
 
-## Git / Commits
+- ComfyUI: `app.registerExtension()`, `node.addDOMWidget(name, type, element, options)`
+- Event handlers via `addEventListener` or widget callbacks
+- Shared utilities: `web/comfyui/utils.js`
+- Dual-mode rendering patterns (canvas vs Vue): see `docs/comfyui-dual-mode-widgets.md`
 
-- Follow repo style: `feat(...)`, `fix(...)`, `chore:`, `docs:`
-- Mention GitHub issue references, e.g. `(#871)`
-- Symlinks require normalized paths throughout the codebase
+### Vue Composables Pattern
+
+- Use composition API: `useXxxState(widget)`, return reactive refs and methods
+- Guard restoration loops with flag: `let isRestoring = false`
+- Build config from state: `const buildConfig = (): Config => { ... }`
+
+## Architecture Patterns
+
+### Service Layer
+
+- `ServiceRegistry` singleton for DI, services use `get_instance()` classmethod
+- Separate scanners (discovery) from services (business logic)
+- Handlers in `py/routes/handlers/` are pure functions with deps as params
+
+### Model Types & Routes
+
+- `BaseModelService` base for LoRA, Checkpoint, Embedding
+- `ModelScanner` for file discovery, hash deduplication
+- `PersistentModelCache` (SQLite) for persistence
+- Route registrars: `ModelRouteRegistrar`, endpoints: `/loras/*`, `/checkpoints/*`, `/embeddings/*`
+- WebSocket via `WebSocketManager` for real-time updates
+
+### Recipe System
+
+- Base: `py/recipes/base.py`, Enrichment: `RecipeEnrichmentService`
+- Parsers: `py/recipes/parsers/`
+
+## Important Notes
+
+- ALWAYS use English for comments (per copilot-instructions.md)
+- Dual mode: ComfyUI plugin (folder_paths) vs standalone (settings.json)
+- Detection: `os.environ.get("LORA_MANAGER_STANDALONE", "0") == "1"`
+- Run `python scripts/sync_translation_keys.py` after adding UI strings to `locales/en.json`
+- Symlinks require normalized paths.
+  **Business paths vs real paths**: All stored paths and operation routing use the
+  original paths as they appear under configured model roots — symlinks are NOT
+  resolved. `os.path.realpath` is only for scanner dedup and the symlink cache.
+  Any path passed to `os.remove`/`os.rename`/`shutil.move` or validated by a
+  containment check MUST use the business path (i.e. `os.path.abspath`, not
+  `realpath`).
+
+## Git / Commit Messages
+
+- Follow the style of recent repository commits when writing commit messages
+- Prefer the repo's existing `feat(...)`, `fix(...)`, `chore:` style where applicable
+- If the user has provided a GitHub issue link or issue ID for the task, mention that issue in the commit message, for example `(#871)`
+- When unrelated local changes exist, stage and commit only the files relevant to the requested task
+
+## Frontend UI Architecture
+
+### 1. Standalone Web UI
+- Location: `./static/` and `./templates/`
+- Tech: Vanilla JS + CSS, served by standalone server
+- Tests via npm in root directory
+
+### 2. ComfyUI Custom Node Widgets
+- Location: `./web/comfyui/` (Vanilla JS) + `./vue-widgets/` (Vue)
+- Primary styles: `./web/comfyui/lm_styles.css` (NOT `./static/css/`)
+- Vue builds to `./web/comfyui/vue-widgets/`, typecheck via `vue-tsc`
