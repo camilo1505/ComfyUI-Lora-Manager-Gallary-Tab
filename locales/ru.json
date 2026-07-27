@@ -200,8 +200,8 @@
             "recipes": "Рецепты",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
-            "outputs": "Outputs",
-            "statistics": "Статистика"
+            "statistics": "Статистика",
+            "outputs": "Выводы"
         },
         "search": {
             "placeholder": "Поиск",
@@ -1022,11 +1022,6 @@
     "embeddings": {
         "title": "Модели Embedding"
     },
-    "outputs": {
-        "title": "[TODO: Translate] Outputs",
-        "metadataAvailable": "[TODO: Translate] Metadata available",
-        "metadataUnavailable": "[TODO: Translate] Metadata unavailable"
-    },
     "sidebar": {
         "modelRoot": "Корень",
         "collapseAll": "Свернуть все папки",
@@ -1554,6 +1549,7 @@
                 "empty": "Для этой модели пока нет истории версий.",
                 "error": "Не удалось загрузить версии.",
                 "missingModelId": "У этой модели отсутствует идентификатор модели Civitai.",
+                "hfGroupInfo": "Это группа моделей HuggingFace. Откройте библиотеку, чтобы увидеть все версии в сетке.",
                 "confirm": {
                     "delete": "Удалить эту версию из библиотеки?"
                 },
@@ -1756,7 +1752,13 @@
         "checkingUpdates": "Проверка обновлений...",
         "checkingMessage": "Пожалуйста, подождите, пока мы проверяем последнюю версию.",
         "showNotifications": "Показывать уведомления об обновлениях",
-        "latestBadge": "Последний",
+        "latestBadge": "Последняя",
+        "latestMain": "Ветка main",
+        "channel": "Канал обновлений",
+        "channels": {
+            "release": "Релиз",
+            "nightly": "Nightly"
+        },
         "updateProgress": {
             "preparing": "Подготовка обновления...",
             "installing": "Установка обновления...",
@@ -1776,6 +1778,15 @@
         "nightly": {
             "warning": "Предупреждение: Ночные сборки могут содержать экспериментальные функции и могут быть нестабильными.",
             "enable": "Включить ночные обновления"
+        },
+        "channelSwitch": {
+            "nightlyTitle": "Переключиться на Nightly",
+            "nightlyMessage": "Переключение на Nightly инициализирует Git-репозиторий и отслеживает последние коммиты ветки main. Обновления чаще, но могут быть нестабильными. Вы можете вернуться к Release в любое время.",
+            "releaseTitle": "Переключиться на Release",
+            "releaseMessage": "Переключение на Release удалит Git-репозиторий и установит последнюю стабильную версию. Будущие обновления будут использовать только стабильные версии.",
+            "switching": "Переключение на канал {channel}...",
+            "completed": "Успешно переключено на канал {channel}",
+            "failed": "Не удалось переключить канал"
         },
         "banners": {
             "recent": "Недавние уведомления",
@@ -2239,5 +2250,10 @@
             "rebuildFailed": "Не удалось перестроить кэш: {error}",
             "retry": "Повторить"
         }
+    },
+    "outputs": {
+        "title": "Выводы",
+        "metadataAvailable": "Метаданные доступны",
+        "metadataUnavailable": "Метаданные недоступны"
     }
 }

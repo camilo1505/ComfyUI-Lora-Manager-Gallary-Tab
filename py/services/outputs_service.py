@@ -312,8 +312,8 @@ class OutputsService:
             "steps": cached["steps"],
             "seed": cached["seed"],
             "checkpoint": cached.get("checkpoint", ""),
-            "prompt": "",
-            "negative_prompt": "",
+            "prompt": cached.get("prompt", ""),
+            "negative_prompt": cached.get("negative_prompt", ""),
             "has_metadata": bool(cached["has_metadata"]),
         }
 

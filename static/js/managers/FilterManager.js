@@ -985,6 +985,7 @@ export class FilterManager {
     }
 
     cloneFilters() {
+        const pageState = getCurrentPageState();
         return {
             ...this.filters,
             baseModel: [...(this.filters.baseModel || [])],
@@ -992,7 +993,8 @@ export class FilterManager {
             autoTags: { ...(this.filters.autoTags || {}) },
             license: { ...(this.filters.license || {}) },
             modelTypes: [...(this.filters.modelTypes || [])],
-            tagLogic: this.filters.tagLogic || 'any'
+            tagLogic: this.filters.tagLogic || 'any',
+            search: this.filters.search || pageState?.filters?.search || ''
         };
     }
 
