@@ -1,0 +1,3 @@
+# Deep-merge locale JSON files at key level instead of line level.
+# Requires: git config merge.locales.driver "python3 scripts/merge_locales_driver.py %O %A %B"
+locales/*.json merge=locales

@@ -56,6 +56,23 @@ npm run typecheck           # TypeScript type checking (vue-tsc --noEmit)
 python scripts/sync_translation_keys.py   # Run after UI string changes
 ```
 
+**Locale files use a canonical format** (`indent=4`, `ensure_ascii=False`,
+`separators=(',', ': ')`, trailing newline) enforced by
+`tests/i18n/test_i18n.py::test_locale_files_match_canonical_format`. Never
+reformat a locale file by hand; regenerate via the sync script.
+
+**Git merge driver**: `locales/*.json` are deep-merged at key level via
+`scripts/merge_locales_driver.py` (declared in `.gitattributes`). Register it
+once per clone so future merges of trunk do not produce whole-file conflicts:
+
+```bash
+git config merge.locales.driver "python3 scripts/merge_locales_driver.py %O %A %B"
+```
+
+After merging upstream into this fork, run the i18n tests
+(`pytest tests/i18n/`) and `python scripts/sync_translation_keys.py` to drop
+keys for features upstream removed.
+
 ## Setup & Environment
 
 - **Standalone mode**: copy `settings.json.example` to `settings.json` and edit model folder paths. Set `"use_portable_settings": true` to keep settings next to the project root.

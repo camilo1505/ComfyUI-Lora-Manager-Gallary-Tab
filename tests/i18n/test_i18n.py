@@ -1,9 +1,11 @@
 """Regression tests for localization data and usage.
 
-These tests validate three key aspects of the localisation setup:
+These tests validate the localisation setup:
 
 * Every locale file is valid JSON and contains the expected sections.
 * All locales expose the same translation keys as the English reference.
+* Locale files match the canonical JSON formatting so merges do not produce
+  whole-file whitespace conflicts (see ``scripts/merge_locales_driver.py``).
 * Static JavaScript/HTML sources only reference available translation keys.
 """
 
@@ -35,6 +37,11 @@ EXPECTED_LOCALES = (
 )
 
 REQUIRED_SECTIONS = {"common", "header", "loras", "recipes", "modals"}
+
+# Must match the serialization used by scripts/sync_translation_keys.py and
+# scripts/merge_locales_driver.py so every tool writes byte-identical output.
+CANONICAL_INDENT = 4
+CANONICAL_SEPARATORS = (",", ": ")
 
 SINGLE_WORD_TRANSLATION_KEYS = {
     "loading",
@@ -217,6 +224,33 @@ def test_locale_files_have_expected_structure(locale: str, loaded_locales: Dict[
     data = loaded_locales[locale]
     missing_sections = sorted(REQUIRED_SECTIONS - data.keys())
     assert not missing_sections, f"{locale} locale is missing sections: {missing_sections}"
+
+
+@pytest.mark.parametrize("locale", EXPECTED_LOCALES)
+def test_locale_files_match_canonical_format(locale: str, loaded_locales: Dict[str, Any]) -> None:
+    """Locale files must use the canonical JSON serialization.
+
+    If two branches format the same locale differently, git treats every line
+    as changed and merges produce whole-file conflicts (the original cause of
+    the ``locales/*.json`` merge friction). Enforcing one canonical byte
+    layout keeps diffs limited to the keys that actually changed.
+
+    Regenerate with: python scripts/sync_translation_keys.py
+    """
+    path = LOCALES_DIR / f"{locale}.json"
+    canonical = (
+        json.dumps(
+            loaded_locales[locale],
+            indent=CANONICAL_INDENT,
+            ensure_ascii=False,
+            separators=CANONICAL_SEPARATORS,
+        )
+        + "\n"
+    )
+    assert path.read_text(encoding="utf-8") == canonical, (
+        f"{path.name} does not match the canonical format. "
+        "Run 'python scripts/sync_translation_keys.py' to regenerate it."
+    )
 
 
 @pytest.mark.parametrize("locale", EXPECTED_LOCALES[1:])
