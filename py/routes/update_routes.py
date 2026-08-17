@@ -7,7 +7,7 @@ import shutil
 import tempfile
 import asyncio
 from aiohttp import web, ClientError
-from typing import Dict, List, Tuple
+from typing import Any, cast, Dict, List, Tuple
 
 from ..utils.settings_paths import ensure_settings_file
 from ..services.downloader import get_downloader
@@ -273,7 +273,7 @@ class UpdateRoutes:
             if os.path.exists(settings_path):
                 with open(settings_path, 'r', encoding='utf-8') as f:
                     settings_backup = f.read()
-                logger.info("Backed up settings.json (%d bytes)", len(settings_backup))
+                logger.debug("Backed up settings.json (%d bytes)", len(settings_backup))
 
             staged_backup_dir, staged_items = _stage_preserved_items(plugin_root)
             try:
@@ -288,7 +288,7 @@ class UpdateRoutes:
             if settings_backup and success:
                 with open(settings_path, 'w', encoding='utf-8') as f:
                     f.write(settings_backup)
-                logger.info("Restored settings.json content")
+                logger.debug("Restored settings.json content (%d bytes)", len(settings_backup))
 
             if success:
                 return web.json_response({
@@ -313,9 +313,11 @@ class UpdateRoutes:
     async def switch_channel(request):
         """
         Switch between release and nightly update channels.
-        
-        Release → Nightly: Initialize a Git repository (from ZIP/CM stable mode)
-        Nightly → Release: Remove .git, download latest release ZIP, write .tracking
+
+        ZIP/CNR install → Nightly: git init + checkout main (one-way upgrade)
+        Git install → Release:   git checkout latest tag (.git preserved)
+        ZIP/CNR install → Release: ZIP download (no .git, stays in ZIP mode)
+        Git install → Nightly:   git checkout main + pull
         """
         try:
             body = await request.json() if request.has_body else {}
@@ -335,7 +337,7 @@ class UpdateRoutes:
             if os.path.exists(settings_path):
                 with open(settings_path, 'r', encoding='utf-8') as f:
                     settings_backup = f.read()
-                logger.info("Backed up settings.json before channel switch (%d bytes)", len(settings_backup))
+                logger.debug("Backed up settings.json before channel switch (%d bytes)", len(settings_backup))
 
             staged_backup_dir, staged_items = _stage_preserved_items(plugin_root)
             try:
@@ -358,28 +360,24 @@ class UpdateRoutes:
                     finally:
                         UpdateRoutes._restore_git(git_backup, git_folder, success, 'nightly')
                 else:
-                    git_backup = None
-                    if os.path.exists(git_folder):
-                        git_backup = UpdateRoutes._backup_git(git_folder, 'release')
-
                     success = False
                     new_version = ''
-                    try:
-                        if os.path.exists(git_folder):
-                            shutil.rmtree(git_folder)
+                    if os.path.exists(git_folder):
+                        success, new_version = await UpdateRoutes._perform_git_update(
+                            plugin_root, nightly=False
+                        )
+                    else:
                         tracking_file = os.path.join(plugin_root, '.tracking')
                         if os.path.exists(tracking_file):
                             os.remove(tracking_file)
                         success, new_version = await UpdateRoutes._download_and_replace_zip(plugin_root)
-                    finally:
-                        UpdateRoutes._restore_git(git_backup, git_folder, success, 'release')
             finally:
                 _restore_preserved_items(plugin_root, staged_backup_dir, staged_items)
 
             if settings_backup and success:
                 with open(settings_path, 'w', encoding='utf-8') as f:
                     f.write(settings_backup)
-                logger.info("Restored settings.json content after channel switch")
+                logger.debug("Restored settings.json content after channel switch (%d bytes)", len(settings_backup))
 
             if success:
                 return web.json_response({
@@ -490,9 +488,10 @@ class UpdateRoutes:
             if not success:
                 logger.error(f"Failed to fetch release info: {data}")
                 return False, ""
-            
-            zip_url = data.get("zipball_url")
-            version = data.get("tag_name", "unknown")
+
+            release_payload = cast(dict[str, Any], data)
+            zip_url = release_payload.get("zipball_url", "")
+            version = release_payload.get("tag_name", "unknown")
 
             # Download ZIP to temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_zip:
@@ -602,9 +601,10 @@ class UpdateRoutes:
                 logger.warning("Failed to fetch GitHub commit: %s", data)
                 return "main", [], 0, ""
 
-            commit_sha = data.get('sha', '')[:7]
-            commit_message = data.get('commit', {}).get('message', '')
-            commit_date = data.get('commit', {}).get('committer', {}).get('date', '')[:10]
+            commit_payload = cast(dict[str, Any], data)
+            commit_sha = commit_payload.get('sha', '')[:7]
+            commit_message = commit_payload.get('commit', {}).get('message', '')
+            commit_date = commit_payload.get('commit', {}).get('committer', {}).get('date', '')[:10]
 
             version = f"main-{commit_sha}"
             changelog = [commit_message] if commit_message else []
@@ -620,10 +620,11 @@ class UpdateRoutes:
                     custom_headers={'Accept': 'application/vnd.github+json'}
                 )
                 if c_ok:
-                    if c_data.get('status') in ('ahead', 'diverged'):
-                        behind_by = c_data.get('ahead_by', 0)
+                    compare_payload = cast(dict[str, Any], c_data)
+                    if compare_payload.get('status') in ('ahead', 'diverged'):
+                        behind_by = compare_payload.get('ahead_by', 0)
                     else:
-                        behind_by = c_data.get('behind_by', 0)
+                        behind_by = compare_payload.get('behind_by', 0)
 
             return version, changelog, behind_by, commit_date
 
@@ -728,7 +729,7 @@ class UpdateRoutes:
             logger.info(f"Successfully updated to {new_version}")
             return True, new_version
             
-        except git.exc.GitError as e:
+        except git.exc.GitError as e:  # pyright: ignore[reportAttributeAccessIssue]
             logger.error(f"Git error during update: {e}")
             return False, ""
         except Exception as e:
@@ -789,7 +790,7 @@ class UpdateRoutes:
         return git_info
     
     @staticmethod
-    async def _get_remote_version() -> tuple[str, List[str], List[Dict]]:
+    async def _get_remote_version() -> tuple[str, List[str], List[Dict[str, Any]]]:
         """
         Fetch remote version from GitHub
         Returns:
@@ -810,7 +811,7 @@ class UpdateRoutes:
             
             # Parse releases
             releases = []
-            for i, release in enumerate(data):
+            for i, release in enumerate(cast(list[dict[str, Any]], data)):
                 version = release.get('tag_name', '')
                 if not version.startswith('v'):
                     version = f"v{version}"

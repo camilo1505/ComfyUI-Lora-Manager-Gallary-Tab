@@ -186,6 +186,16 @@
             "cancelled": "Восстановление отменено. {count} рецептов было восстановлено.",
             "error": "Ошибка восстановления рецептов: {message}"
         },
+        "rematchRecipes": {
+            "label": "Повторное сопоставление рецептов с локальными моделями",
+            "loading": "Повторное сопоставление рецептов с локальными моделями...",
+            "success": "Сопоставлено записей: {entries} в рецептах: {recipes}",
+            "successErrors": "Сопоставлено записей: {entries} в рецептах: {recipes}, ошибок: {failures}",
+            "allFailed": "Не удалось сопоставить: {failures} из {total} рецептов",
+            "noMatch": "Не найдено локального сопоставления для {entries} записей в {recipes} рецептах",
+            "cancelled": "Сопоставление отменено. Обновлено рецептов: {recipes} (записей: {entries})",
+            "error": "Не удалось выполнить сопоставление рецептов: {message}"
+        },
         "manageExcludedModels": {
             "label": "Управление исключёнными моделями"
         },
@@ -200,8 +210,8 @@
             "recipes": "Рецепты",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
-            "statistics": "Статистика",
-            "outputs": "Выводы"
+            "outputs": "Выводы",
+            "statistics": "Статистика"
         },
         "search": {
             "placeholder": "Поиск",
@@ -450,6 +460,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "Предупреждение: Высокая плотность может вызвать проблемы с производительностью на системах с ограниченными ресурсами.",
+            "recipesLayout": "Макет рецептов",
+            "recipesLayoutHelp": "Выберите, как располагаются карточки рецептов: единая сетка или masonry-макет (в стиле Pinterest), сохраняющий пропорции каждого изображения.",
+            "recipesLayoutOptions": {
+                "grid": "Сетка",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "Показывать боковую панель папок",
             "showFolderSidebarHelp": "Включает или выключает боковую панель навигации по папкам на страницах моделей. При отключении панель и область наведения скрыты.",
             "cardInfoDisplay": "Отображение информации карточки",
@@ -607,6 +623,10 @@
             "label": "Скрыть обновления раннего доступа",
             "help": "Только обновления раннего доступа"
         },
+        "hidePaidUpdates": {
+            "label": "[TODO: Translate] Hide Paid Updates",
+            "help": "[TODO: Translate] When enabled, models with only paid updates will not show 'Update available' badge"
+        },
         "licenseIcons": {
             "useNewStyle": "Использовать обновлённые значки лицензии",
             "useNewStyleHelp": "Отображать разрешения лицензии с цветными индикаторами (новый стиль) или только значки ограничений (классический стиль). Соответствует текущему дизайну CivitAI."
@@ -679,6 +699,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "Пользовательский (совместимый с OpenAI)"
             },
@@ -715,7 +736,9 @@
                 "versionsCount": "Локальные версии",
                 "versionsCountDesc": "Сначала больше версий",
                 "versionsCountAsc": "Сначала меньше версий",
-                "versionIdDesc": "Сначала новые версии"
+                "versionIdDesc": "Сначала новые версии",
+                "random": "Случайно",
+                "randomAction": "Перемешать"
             },
             "refresh": {
                 "title": "Обновить список моделей",
@@ -760,6 +783,7 @@
             "copyAll": "Копировать весь синтаксис",
             "refreshAll": "Обновить все метаданные",
             "repairMetadata": "Восстановить метаданные для выбранных",
+            "rematchMetadata": "Сопоставить выбранные с локальными моделями",
             "reimportMetadata": "Переимпортировать из источника",
             "checkUpdates": "Проверить обновления для выбранных",
             "moveAll": "Переместить все в папку",
@@ -772,6 +796,8 @@
             "deleteAll": "Удалить выбранные",
             "downloadMissingLoras": "Скачать отсутствующие LoRAs",
             "downloadExamples": "Загрузить примеры изображений",
+            "downloadMissingExamples": "Скачать недостающие",
+            "reprocessExamples": "Обработать всё заново",
             "clear": "Очистить выбор",
             "skipMetadataRefreshCount": "Пропустить（{count} моделей）",
             "resumeMetadataRefreshCount": "Возобновить（{count} моделей）",
@@ -807,10 +833,13 @@
             "sendToWorkflowReplace": "Отправить в Workflow (Заменить)",
             "openExamples": "Открыть папку примеров",
             "downloadExamples": "Загрузить примеры изображений",
+            "downloadMissingExamples": "Скачать недостающие",
+            "reprocessExamples": "Обработать всё заново",
             "replacePreview": "Заменить превью",
             "setContentRating": "Установить рейтинг контента",
             "moveToFolder": "Переместить в папку",
             "repairMetadata": "Восстановить метаданные",
+            "rematchMetadata": "Сопоставить с локальными моделями",
             "reimportMetadata": "Переимпортировать из источника",
             "excludeModel": "Исключить модель",
             "restoreModel": "Восстановить модель",
@@ -896,7 +925,9 @@
                 "dateAsc": "Сначала старые",
                 "lorasCount": "Кол-во LoRA",
                 "lorasCountDesc": "Больше всего",
-                "lorasCountAsc": "Меньше всего"
+                "lorasCountAsc": "Меньше всего",
+                "opened": "Недавно открытые",
+                "openedDesc": "Недавно открытые"
             },
             "refresh": {
                 "title": "Обновить список рецептов",
@@ -907,12 +938,25 @@
             "favorites": {
                 "title": "Только избранные",
                 "action": "Избранное"
+            },
+            "layout": {
+                "title": "Макет рецептов",
+                "grid": "Макет сеткой",
+                "masonry": "Masonry-макет (в стиле Pinterest, сохраняет пропорции изображения)"
             }
         },
         "duplicates": {
             "found": "Найдено {count} групп дубликатов",
+            "noGroups": "Дубликатов с текущим критерием не найдено",
             "keepLatest": "Оставить последние версии",
-            "deleteSelected": "Удалить выбранные"
+            "deleteSelected": "Удалить выбранные",
+            "includePromptLabel": "Учитывать запрос при поиске дубликатов",
+            "basis": {
+                "loraCombo": "Критерий: комбинация LoRA",
+                "loraComboAndPrompt": "Критерий: комбинация LoRA + запрос",
+                "hintLoraCombo": "Рецепты с одинаковыми LoRA и одинаковой силой группируются вместе.",
+                "hintPromptIncluded": "Рецепты группируются только при одинаковых LoRA с одинаковой силой И одинаковом запросе."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1021,6 +1065,11 @@
     },
     "embeddings": {
         "title": "Модели Embedding"
+    },
+    "outputs": {
+        "title": "Выводы",
+        "metadataAvailable": "Метаданные доступны",
+        "metadataUnavailable": "Метаданные недоступны"
     },
     "sidebar": {
         "modelRoot": "Корень",
@@ -1245,8 +1294,13 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "Освобождает {size}",
             "title": "Удалить модель",
-            "message": "Вы уверены, что хотите удалить эту модель и все связанные файлы?"
+            "message": "Вы уверены, что хотите удалить эту модель и все связанные файлы?",
+            "recoverableWarning": "Файл будет удалён навсегда через 20 секунд, если вы не отмените действие."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "Это действие можно отменить в течение 20 секунд."
         },
         "excludeModel": {
             "title": "Исключить модель",
@@ -1511,6 +1565,8 @@
                     "newerTooltip": "Эта версия новее вашей последней локальной версии",
                     "earlyAccess": "Ранний доступ",
                     "earlyAccessTooltip": "Для этой версии сейчас требуется ранний доступ Civitai",
+                    "paid": "[TODO: Translate] Paid",
+                    "paidTooltip": "[TODO: Translate] This version requires payment to download",
                     "ignored": "Игнорируется",
                     "ignoredTooltip": "Уведомления об обновлениях для этой версии отключены",
                     "onSiteOnly": "Только на Сайте",
@@ -1520,6 +1576,7 @@
                     "download": "Скачать",
                     "downloadTooltip": "Скачать эту версию",
                     "downloadEarlyAccessTooltip": "Скачать эту версию раннего доступа с Civitai",
+                    "downloadPaidTooltip": "[TODO: Translate] Download this paid version from Civitai",
                     "downloadNotAllowedTooltip": "Эта версия доступна только для генерации на сайте Civitai",
                     "delete": "Удалить",
                     "deleteTooltip": "Удалить эту локальную версию",
@@ -1576,6 +1633,21 @@
             "downloadCsv": "Скачать CSV",
             "columnModelName": "Имя модели",
             "columnError": "Ошибка"
+        },
+        "downloadBatchSummary": {
+            "title": "Сводка пакетной загрузки",
+            "statSuccess": "Успешно",
+            "statFailed": "Ошибки",
+            "statTotal": "Всего",
+            "successMessage": "Все {count} моделей успешно загружены",
+            "completedWithErrors": "Завершено с ошибками",
+            "failed": "Не удалось загрузить",
+            "failedItems": "Неудачные элементы ({count})",
+            "columnName": "Имя модели",
+            "columnError": "Ошибка",
+            "close": "Закрыть",
+            "copyReport": "Скопировать отчёт",
+            "retryFailed": "Повторить неудачные ({count})"
         }
     },
     "modelTags": {
@@ -1674,6 +1746,7 @@
             "recipeReplaced": "Рецепт заменён в workflow",
             "recipeFailedToSend": "Не удалось отправить рецепт в workflow",
             "noMatchingNodes": "В текущем workflow нет совместимых узлов",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "Целевой узел не выбран",
             "modelUpdated": "Модель обновлена в workflow",
             "modelFailed": "Не удалось обновить узел модели",
@@ -1783,7 +1856,7 @@
             "nightlyTitle": "Переключиться на Nightly",
             "nightlyMessage": "Переключение на Nightly инициализирует Git-репозиторий и отслеживает последние коммиты ветки main. Обновления чаще, но могут быть нестабильными. Вы можете вернуться к Release в любое время.",
             "releaseTitle": "Переключиться на Release",
-            "releaseMessage": "Переключение на Release удалит Git-репозиторий и установит последнюю стабильную версию. Будущие обновления будут использовать только стабильные версии.",
+            "releaseMessage": "Переключение на Release выполнит checkout последнего стабильного тега. Вы можете вернуться к Nightly в любое время.",
             "switching": "Переключение на канал {channel}...",
             "completed": "Успешно переключено на канал {channel}",
             "failed": "Не удалось переключить канал"
@@ -1924,6 +1997,12 @@
             "repairBulkComplete": "Восстановление завершено: {repaired} восстановлено, {skipped} пропущено (из {total})",
             "repairBulkSkipped": "Ни один из {total} выбранных рецептов не требует восстановления",
             "repairBulkFailed": "Не удалось восстановить выбранные рецепты: {message}",
+            "rematchComplete": "Сопоставлено записей: {entries} в рецептах: {recipes}",
+            "rematchCompleteErrors": "Сопоставлено записей: {entries} в рецептах: {recipes}, ошибок: {failures}",
+            "rematchAllFailed": "Не удалось сопоставить: {failures} из {total} выбранных рецептов",
+            "rematchUnmatched": "Не найдено локального сопоставления для {entries} записей в {recipes} рецептах",
+            "rematchSkipped": "Ни один из {total} выбранных рецептов не требует сопоставления",
+            "rematchFailed": "Не удалось сопоставить выбранные рецепты: {message}",
             "reimporting": "Переимпорт рецепта из источника...",
             "reimportSuccess": "Рецепт успешно переимпортирован",
             "reimportBulkComplete": "Переимпорт завершён: {completed} переимпортировано, {failed} ошибок (из {total})",
@@ -2032,7 +2111,6 @@
             "presetNameTooLong": "Имя пресета должно содержать не более {max} символов",
             "presetNameInvalidChars": "Имя пресета содержит недопустимые символы",
             "presetNameExists": "Пресет с таким именем уже существует",
-            "maxPresetsReached": "Допустимо максимум {max} пресетов. Удалите один, чтобы добавить больше.",
             "presetNotFound": "Пресет не найден",
             "invalidPreset": "Недопустимые данные пресета",
             "deletePresetFailed": "Не удалось удалить пресет",
@@ -2060,6 +2138,14 @@
             "updateSuccess": "Триггерные слова успешно обновлены",
             "updateFailed": "Не удалось обновить триггерные слова",
             "copyFailed": "Копирование не удалось"
+        },
+        "undo": {
+            "action": "Отменить",
+            "deleted": "Удалено: {name}",
+            "deletedBulk": "Удалено: {count} шт.",
+            "expired": "Время отмены истекло. Элемент был удалён навсегда.",
+            "failed": "Не удалось отменить: {error}",
+            "restored": "Элемент восстановлен"
         },
         "virtual": {
             "loadFailed": "Не удалось загрузить элементы",
@@ -2124,6 +2210,7 @@
             "fileRenameFailed": "Не удалось переименовать файл: {error}",
             "previewUpdated": "Превью успешно обновлено",
             "previewUploadFailed": "Не удалось загрузить превью изображение",
+            "previewDropInvalid": "Неподдерживаемый тип файла: {name}. Перетащите вместо этого изображение или видео MP4.",
             "refreshComplete": "{action} завершено",
             "refreshFailed": "Не удалось {action} {type}s",
             "metadataRefreshed": "Метаданные успешно обновлены",
@@ -2250,10 +2337,5 @@
             "rebuildFailed": "Не удалось перестроить кэш: {error}",
             "retry": "Повторить"
         }
-    },
-    "outputs": {
-        "title": "Выводы",
-        "metadataAvailable": "Метаданные доступны",
-        "metadataUnavailable": "Метаданные недоступны"
     }
 }

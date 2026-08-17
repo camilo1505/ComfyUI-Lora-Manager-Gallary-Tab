@@ -18,7 +18,7 @@ class DownloadCoordinator:
         self,
         *,
         ws_manager,
-        download_manager_factory: Callable[[], Awaitable],
+        download_manager_factory: Callable[[], Awaitable[Any]],
     ) -> None:
         self._ws_manager = ws_manager
         self._download_manager_factory = download_manager_factory
@@ -83,6 +83,7 @@ class DownloadCoordinator:
             save_dir=payload.get("model_root"),
             relative_path=payload.get("relative_path", ""),
             use_default_paths=payload.get("use_default_paths", False),
+            use_save_dir_as_root=payload.get("use_save_dir_as_root", False),
             progress_callback=progress_callback,
             download_id=download_id,
             source=payload.get("source"),

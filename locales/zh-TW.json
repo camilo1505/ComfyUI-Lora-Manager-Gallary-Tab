@@ -186,6 +186,16 @@
             "cancelled": "修復已取消。已修復 {count} 個配方。",
             "error": "配方修復失敗：{message}"
         },
+        "rematchRecipes": {
+            "label": "將食譜重新匹配到本地模型",
+            "loading": "正在將食譜重新匹配到本地模型...",
+            "success": "已匹配 {entries} 個條目，涉及 {recipes} 個食譜",
+            "successErrors": "已匹配 {entries} 個條目，涉及 {recipes} 個食譜，{failures} 個失敗",
+            "allFailed": "{failures}/{total} 個食譜重新匹配失敗",
+            "noMatch": "在 {recipes} 個食譜中找不到 {entries} 個條目的本地匹配",
+            "cancelled": "已取消重新匹配。{recipes} 個食譜已更新（{entries} 個條目）。",
+            "error": "食譜重新匹配失敗：{message}"
+        },
         "manageExcludedModels": {
             "label": "管理已排除的模型"
         },
@@ -200,8 +210,8 @@
             "recipes": "配方",
             "checkpoints": "Checkpoint",
             "embeddings": "Embedding",
-            "statistics": "統計",
-            "outputs": "輸出"
+            "outputs": "輸出",
+            "statistics": "統計"
         },
         "search": {
             "placeholder": "搜尋",
@@ -450,6 +460,12 @@
                 "compact": "7（1080p）、8（2K）、10（4K）"
             },
             "displayDensityWarning": "警告：較高密度可能導致資源有限的系統效能下降。",
+            "recipesLayout": "配方版面",
+            "recipesLayoutHelp": "選擇配方卡片的排列方式：統一網格，或保留每張圖片原始寬高比的瀑布流（Pinterest 風格）版面。",
+            "recipesLayoutOptions": {
+                "grid": "網格",
+                "masonry": "瀑布流"
+            },
             "showFolderSidebar": "顯示資料夾側邊欄",
             "showFolderSidebarHelp": "在模型頁面啟用或停用資料夾導覽側邊欄。停用後，側邊欄與滑鼠懸停區域將保持隱藏。",
             "cardInfoDisplay": "卡片資訊顯示",
@@ -607,6 +623,10 @@
             "label": "隱藏搶先體驗更新",
             "help": "搶先體驗更新"
         },
+        "hidePaidUpdates": {
+            "label": "[TODO: Translate] Hide Paid Updates",
+            "help": "[TODO: Translate] When enabled, models with only paid updates will not show 'Update available' badge"
+        },
         "licenseIcons": {
             "useNewStyle": "使用新版許可協議圖標",
             "useNewStyleHelp": "以彩色指示器顯示許可權限（新樣式），或僅顯示限制圖標（經典樣式）。與當前 CivitAI 設計保持一致。"
@@ -679,6 +699,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "自訂（OpenAI 相容）"
             },
@@ -687,7 +708,7 @@
             "apiBasePlaceholder": "https://api.openai.com/v1",
             "apiKey": "API 金鑰",
             "apiKeyHelp": "LLM 提供者的 API 金鑰。儲存在本地，除您選擇的 LLM 提供者外不會傳送到任何伺服器。",
-            "apiKeyPlaceholder": "[TODO: Translate] sk-...",
+            "apiKeyPlaceholder": "sk-...",
             "apiKeyNotSet": "未設定",
             "apiKeyConfigured": "已設定",
             "apiKeySet": "設定",
@@ -715,7 +736,9 @@
                 "versionsCount": "本地版本數",
                 "versionsCountDesc": "版本數從多到少",
                 "versionsCountAsc": "版本數從少到多",
-                "versionIdDesc": "最新版本優先"
+                "versionIdDesc": "最新版本優先",
+                "random": "隨機",
+                "randomAction": "隨機排序（洗牌）"
             },
             "refresh": {
                 "title": "重新整理模型列表",
@@ -760,6 +783,7 @@
             "copyAll": "複製全部語法",
             "refreshAll": "刷新全部 metadata",
             "repairMetadata": "修復所選中元數據",
+            "rematchMetadata": "將所選中重新匹配到本地模型",
             "reimportMetadata": "從來源重新匯入",
             "checkUpdates": "檢查所選更新",
             "moveAll": "全部移動到資料夾",
@@ -772,6 +796,8 @@
             "deleteAll": "刪除所選",
             "downloadMissingLoras": "下載缺失的 LoRAs",
             "downloadExamples": "下載範例圖片",
+            "downloadMissingExamples": "下載缺少的",
+            "reprocessExamples": "重新處理全部",
             "clear": "清除選取",
             "skipMetadataRefreshCount": "跳過（{count} 個模型）",
             "resumeMetadataRefreshCount": "恢復（{count} 個模型）",
@@ -807,10 +833,13 @@
             "sendToWorkflowReplace": "傳送到工作流（取代）",
             "openExamples": "開啟範例資料夾",
             "downloadExamples": "下載範例圖片",
+            "downloadMissingExamples": "下載缺少的",
+            "reprocessExamples": "重新處理全部",
             "replacePreview": "更換預覽圖",
             "setContentRating": "設定內容分級",
             "moveToFolder": "移動到資料夾",
             "repairMetadata": "修復元數據",
+            "rematchMetadata": "重新匹配到本地模型",
             "reimportMetadata": "從來源重新匯入",
             "excludeModel": "排除模型",
             "restoreModel": "還原模型",
@@ -896,7 +925,9 @@
                 "dateAsc": "最舊",
                 "lorasCount": "LoRA 數量",
                 "lorasCountDesc": "最多",
-                "lorasCountAsc": "最少"
+                "lorasCountAsc": "最少",
+                "opened": "最近開啟",
+                "openedDesc": "最近開啟"
             },
             "refresh": {
                 "title": "重新整理配方列表",
@@ -907,12 +938,25 @@
             "favorites": {
                 "title": "僅顯示收藏",
                 "action": "收藏"
+            },
+            "layout": {
+                "title": "配方版面",
+                "grid": "網格版面",
+                "masonry": "瀑布流版面（Pinterest 風格，保留圖片原始寬高比）"
             }
         },
         "duplicates": {
             "found": "發現 {count} 組重複項",
+            "noGroups": "按目前判重依據未找到重複組",
             "keepLatest": "保留最新版本",
-            "deleteSelected": "刪除所選"
+            "deleteSelected": "刪除所選",
+            "includePromptLabel": "將提示詞納入判重",
+            "basis": {
+                "loraCombo": "判重依據：LoRA 組合",
+                "loraComboAndPrompt": "判重依據：LoRA 組合 + 提示詞",
+                "hintLoraCombo": "使用相同 LoRA（強度一致）的配方會被分組。",
+                "hintPromptIncluded": "僅當配方使用相同的 LoRA（強度一致）且提示詞相同時才會被分組。"
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1021,6 +1065,11 @@
     },
     "embeddings": {
         "title": "Embedding 模型"
+    },
+    "outputs": {
+        "title": "輸出",
+        "metadataAvailable": "中繼資料可用",
+        "metadataUnavailable": "中繼資料不可用"
     },
     "sidebar": {
         "modelRoot": "根目錄",
@@ -1245,8 +1294,13 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "釋放 {size}",
             "title": "刪除模型",
-            "message": "您確定要刪除此模型及所有相關檔案嗎？"
+            "message": "您確定要刪除此模型及所有相關檔案嗎？",
+            "recoverableWarning": "如果未復原，檔案將在 20 秒後被永久刪除。"
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "此操作可在 20 秒內復原。"
         },
         "excludeModel": {
             "title": "排除模型",
@@ -1511,6 +1565,8 @@
                     "newerTooltip": "此版本比你本地的最新版本更新",
                     "earlyAccess": "搶先體驗",
                     "earlyAccessTooltip": "此版本目前需要 Civitai 搶先體驗權限",
+                    "paid": "[TODO: Translate] Paid",
+                    "paidTooltip": "[TODO: Translate] This version requires payment to download",
                     "ignored": "已忽略",
                     "ignoredTooltip": "此版本已關閉更新通知",
                     "onSiteOnly": "僅站內生成",
@@ -1520,6 +1576,7 @@
                     "download": "下載",
                     "downloadTooltip": "下載此版本",
                     "downloadEarlyAccessTooltip": "從 Civitai 下載此搶先體驗版本",
+                    "downloadPaidTooltip": "[TODO: Translate] Download this paid version from Civitai",
                     "downloadNotAllowedTooltip": "此版本僅在 Civitai 站內可用，無法下載",
                     "delete": "刪除",
                     "deleteTooltip": "刪除此本地版本",
@@ -1576,6 +1633,21 @@
             "downloadCsv": "下載 CSV",
             "columnModelName": "模型名稱",
             "columnError": "錯誤"
+        },
+        "downloadBatchSummary": {
+            "title": "批次下載摘要",
+            "statSuccess": "成功",
+            "statFailed": "失敗",
+            "statTotal": "總數",
+            "successMessage": "全部 {count} 個模型下載成功",
+            "completedWithErrors": "已完成，但有錯誤",
+            "failed": "下載失敗",
+            "failedItems": "失敗項目（{count}）",
+            "columnName": "模型名稱",
+            "columnError": "錯誤",
+            "close": "關閉",
+            "copyReport": "複製報告",
+            "retryFailed": "重試失敗項目（{count}）"
         }
     },
     "modelTags": {
@@ -1674,6 +1746,7 @@
             "recipeReplaced": "配方已取代於工作流",
             "recipeFailedToSend": "傳送配方到工作流失敗",
             "noMatchingNodes": "目前工作流程中沒有相容的節點",
+            "noPromptTargets": "工作流中沒有相容的 prompt 目標節點。\n在 ComfyUI 中右鍵節點 → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "未選擇目標節點",
             "modelUpdated": "模型已更新到工作流",
             "modelFailed": "更新模型節點失敗",
@@ -1783,7 +1856,7 @@
             "nightlyTitle": "切换到 Nightly",
             "nightlyMessage": "切换到 Nightly 将初始化 Git 仓库并跟踪 main 分支的最新提交。更新更频繁但可能不稳定，可随时切回稳定版。",
             "releaseTitle": "切换到稳定版",
-            "releaseMessage": "切换到稳定版将移除 Git 仓库并安装最新的稳定发布版本，后续仅使用稳定版更新。",
+            "releaseMessage": "切換到穩定版將檢出最新的發布標籤。可隨時切換回每日構建版。",
             "switching": "正在切換到 {channel} 頻道...",
             "completed": "已切換到 {channel} 頻道",
             "failed": "切換頻道失敗"
@@ -1924,6 +1997,12 @@
             "repairBulkComplete": "修復完成：{repaired} 個已修復，{skipped} 個已跳過（共 {total} 個）",
             "repairBulkSkipped": "所選 {total} 個配方無需修復",
             "repairBulkFailed": "修復所選配方失敗：{message}",
+            "rematchComplete": "已匹配 {entries} 個條目，涉及 {recipes} 個食譜",
+            "rematchCompleteErrors": "已匹配 {entries} 個條目，涉及 {recipes} 個食譜，{failures} 個失敗",
+            "rematchAllFailed": "{failures}/{total} 個所選食譜重新匹配失敗",
+            "rematchUnmatched": "在 {recipes} 個食譜中找不到 {entries} 個條目的本地匹配",
+            "rematchSkipped": "{total} 個所選食譜均無需重新匹配",
+            "rematchFailed": "重新匹配所選食譜失敗：{message}",
             "reimporting": "正在從來源重新匯入配方...",
             "reimportSuccess": "配方已從來源重新匯入成功",
             "reimportBulkComplete": "重新匯入完成：{completed} 個已匯入，{failed} 個失敗（共 {total} 個）",
@@ -2032,7 +2111,6 @@
             "presetNameTooLong": "預設名稱不能超過 {max} 個字元",
             "presetNameInvalidChars": "預設名稱包含無效字元",
             "presetNameExists": "已存在同名預設",
-            "maxPresetsReached": "最多允許 {max} 個預設。刪除一個以新增更多。",
             "presetNotFound": "預設未找到",
             "invalidPreset": "無效的預設資料",
             "deletePresetFailed": "刪除預設失敗",
@@ -2060,6 +2138,14 @@
             "updateSuccess": "觸發詞已更新",
             "updateFailed": "更新觸發詞失敗",
             "copyFailed": "複製失敗"
+        },
+        "undo": {
+            "action": "復原",
+            "deleted": "已刪除 {name}",
+            "deletedBulk": "已刪除 {count} 個項目",
+            "expired": "復原視窗已過期，項目已被永久刪除。",
+            "failed": "復原失敗：{error}",
+            "restored": "項目已還原"
         },
         "virtual": {
             "loadFailed": "載入項目失敗",
@@ -2124,6 +2210,7 @@
             "fileRenameFailed": "重新命名檔案失敗：{error}",
             "previewUpdated": "預覽圖片已成功更新",
             "previewUploadFailed": "上傳預覽圖片失敗",
+            "previewDropInvalid": "不支援的檔案類型：{name}。請拖入圖片或 MP4 影片。",
             "refreshComplete": "{action} 完成",
             "refreshFailed": "{action} {type} 失敗",
             "metadataRefreshed": "metadata 已成功刷新",
@@ -2250,10 +2337,5 @@
             "rebuildFailed": "重建快取失敗：{error}",
             "retry": "重試"
         }
-    },
-    "outputs": {
-        "title": "輸出",
-        "metadataAvailable": "中繼資料可用",
-        "metadataUnavailable": "中繼資料不可用"
     }
 }

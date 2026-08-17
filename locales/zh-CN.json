@@ -186,6 +186,16 @@
             "cancelled": "修复已取消。已修复 {count} 个配方。",
             "error": "配方修复失败：{message}"
         },
+        "rematchRecipes": {
+            "label": "将食谱重新匹配到本地模型",
+            "loading": "正在将食谱重新匹配到本地模型...",
+            "success": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
+            "successErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
+            "allFailed": "{failures}/{total} 个食谱重新匹配失败",
+            "noMatch": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
+            "cancelled": "已取消重新匹配。{recipes} 个食谱已更新（{entries} 个条目）。",
+            "error": "食谱重新匹配失败：{message}"
+        },
         "manageExcludedModels": {
             "label": "管理已排除的模型"
         },
@@ -200,8 +210,8 @@
             "recipes": "配方",
             "checkpoints": "Checkpoint",
             "embeddings": "Embedding",
-            "statistics": "统计",
-            "outputs": "输出"
+            "outputs": "输出",
+            "statistics": "统计"
         },
         "search": {
             "placeholder": "搜索",
@@ -450,6 +460,12 @@
                 "compact": "7（1080p），8（2K），10（4K）"
             },
             "displayDensityWarning": "警告：高密度可能导致资源有限的系统性能下降。",
+            "recipesLayout": "配方布局",
+            "recipesLayoutHelp": "选择配方卡片的排列方式：统一网格，或保留每张图片原始宽高比的瀑布流（Pinterest 风格）布局。",
+            "recipesLayoutOptions": {
+                "grid": "网格",
+                "masonry": "瀑布流"
+            },
             "showFolderSidebar": "显示文件夹侧边栏",
             "showFolderSidebarHelp": "在模型页面启用或禁用文件夹导航侧边栏。关闭后，侧边栏和悬停区域将保持隐藏。",
             "cardInfoDisplay": "卡片信息显示",
@@ -607,6 +623,10 @@
             "label": "隐藏抢先体验更新",
             "help": "抢先体验更新"
         },
+        "hidePaidUpdates": {
+            "label": "[TODO: Translate] Hide Paid Updates",
+            "help": "[TODO: Translate] When enabled, models with only paid updates will not show 'Update available' badge"
+        },
         "licenseIcons": {
             "useNewStyle": "使用新版许可协议图标",
             "useNewStyleHelp": "以彩色指示器显示许可权限（新样式），或仅显示限制图标（经典样式）。与当前 CivitAI 设计保持一致。"
@@ -679,6 +699,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "自定义（OpenAI 兼容）"
             },
@@ -715,7 +736,9 @@
                 "versionsCount": "本地版本数",
                 "versionsCountDesc": "版本数从多到少",
                 "versionsCountAsc": "版本数从少到多",
-                "versionIdDesc": "最新版本优先"
+                "versionIdDesc": "最新版本优先",
+                "random": "随机",
+                "randomAction": "随机排序（洗牌）"
             },
             "refresh": {
                 "title": "刷新模型列表",
@@ -760,6 +783,7 @@
             "copyAll": "复制所选中语法",
             "refreshAll": "刷新所选中元数据",
             "repairMetadata": "修复所选中元数据",
+            "rematchMetadata": "将所选中重新匹配到本地模型",
             "reimportMetadata": "从源重新导入",
             "checkUpdates": "检查所选更新",
             "moveAll": "移动所选中到文件夹",
@@ -772,6 +796,8 @@
             "deleteAll": "删除已选",
             "downloadMissingLoras": "下载缺失的 LoRAs",
             "downloadExamples": "下载示例图片",
+            "downloadMissingExamples": "下载缺失的",
+            "reprocessExamples": "重新处理全部",
             "clear": "清除选择",
             "skipMetadataRefreshCount": "跳过（{count} 个模型）",
             "resumeMetadataRefreshCount": "恢复（{count} 个模型）",
@@ -807,10 +833,13 @@
             "sendToWorkflowReplace": "发送到工作流（替换）",
             "openExamples": "打开示例文件夹",
             "downloadExamples": "下载示例图片",
+            "downloadMissingExamples": "下载缺失的",
+            "reprocessExamples": "重新处理全部",
             "replacePreview": "替换预览",
             "setContentRating": "设置内容评级",
             "moveToFolder": "移动到文件夹",
             "repairMetadata": "修复元数据",
+            "rematchMetadata": "重新匹配到本地模型",
             "reimportMetadata": "从源重新导入",
             "excludeModel": "排除模型",
             "restoreModel": "恢复模型",
@@ -896,7 +925,9 @@
                 "dateAsc": "最早",
                 "lorasCount": "LoRA 数量",
                 "lorasCountDesc": "最多",
-                "lorasCountAsc": "最少"
+                "lorasCountAsc": "最少",
+                "opened": "最近打开",
+                "openedDesc": "最近打开"
             },
             "refresh": {
                 "title": "刷新配方列表",
@@ -907,12 +938,25 @@
             "favorites": {
                 "title": "仅显示收藏",
                 "action": "收藏"
+            },
+            "layout": {
+                "title": "配方布局",
+                "grid": "网格布局",
+                "masonry": "瀑布流布局（Pinterest 风格，保留图片原始宽高比）"
             }
         },
         "duplicates": {
             "found": "发现 {count} 个重复组",
+            "noGroups": "按当前判重依据未找到重复组",
             "keepLatest": "保留最新版本",
-            "deleteSelected": "删除已选"
+            "deleteSelected": "删除已选",
+            "includePromptLabel": "将提示词纳入判重",
+            "basis": {
+                "loraCombo": "判重依据：LoRA 组合",
+                "loraComboAndPrompt": "判重依据：LoRA 组合 + 提示词",
+                "hintLoraCombo": "使用相同 LoRA（强度一致）的配方会被分组。",
+                "hintPromptIncluded": "仅当配方使用相同的 LoRA（强度一致）且提示词相同时才会被分组。"
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1021,6 +1065,11 @@
     },
     "embeddings": {
         "title": "Embedding 模型"
+    },
+    "outputs": {
+        "title": "输出",
+        "metadataAvailable": "元数据可用",
+        "metadataUnavailable": "元数据不可用"
     },
     "sidebar": {
         "modelRoot": "根目录",
@@ -1245,8 +1294,13 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "释放 {size}",
             "title": "删除模型",
-            "message": "你确定要删除此模型及所有相关文件吗？"
+            "message": "你确定要删除此模型及所有相关文件吗？",
+            "recoverableWarning": "如果不撤销，文件将在 20 秒后被永久删除。"
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "此操作可在 20 秒内撤销。"
         },
         "excludeModel": {
             "title": "排除模型",
@@ -1511,6 +1565,8 @@
                     "newerTooltip": "此版本比你本地的最新版本更新",
                     "earlyAccess": "抢先体验",
                     "earlyAccessTooltip": "此版本当前需要 Civitai 抢先体验权限",
+                    "paid": "[TODO: Translate] Paid",
+                    "paidTooltip": "[TODO: Translate] This version requires payment to download",
                     "ignored": "已忽略",
                     "ignoredTooltip": "此版本已关闭更新通知",
                     "onSiteOnly": "仅站内生成",
@@ -1520,6 +1576,7 @@
                     "download": "下载",
                     "downloadTooltip": "下载此版本",
                     "downloadEarlyAccessTooltip": "从 Civitai 下载此抢先体验版本",
+                    "downloadPaidTooltip": "[TODO: Translate] Download this paid version from Civitai",
                     "downloadNotAllowedTooltip": "此版本仅在 Civitai 站内可用，无法下载",
                     "delete": "删除",
                     "deleteTooltip": "删除此本地版本",
@@ -1576,6 +1633,21 @@
             "downloadCsv": "下载 CSV",
             "columnModelName": "模型名称",
             "columnError": "错误"
+        },
+        "downloadBatchSummary": {
+            "title": "批量下载摘要",
+            "statSuccess": "成功",
+            "statFailed": "失败",
+            "statTotal": "总数",
+            "successMessage": "全部 {count} 个模型下载成功",
+            "completedWithErrors": "已完成，但有错误",
+            "failed": "下载失败",
+            "failedItems": "失败项（{count}）",
+            "columnName": "模型名称",
+            "columnError": "错误",
+            "close": "关闭",
+            "copyReport": "复制报告",
+            "retryFailed": "重试失败项（{count}）"
         }
     },
     "modelTags": {
@@ -1674,6 +1746,7 @@
             "recipeReplaced": "配方已替换到工作流",
             "recipeFailedToSend": "发送配方到工作流失败",
             "noMatchingNodes": "当前工作流中没有兼容的节点",
+            "noPromptTargets": "工作流中没有兼容的 prompt 目标节点。\n在 ComfyUI 中右键节点 → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "未选择目标节点",
             "modelUpdated": "模型已更新到工作流",
             "modelFailed": "更新模型节点失败",
@@ -1783,7 +1856,7 @@
             "nightlyTitle": "切换到 Nightly",
             "nightlyMessage": "切换到 Nightly 将初始化 Git 仓库并跟踪 main 分支的最新提交。更新更频繁但可能不稳定，可随时切回稳定版。",
             "releaseTitle": "切换到稳定版",
-            "releaseMessage": "切换到稳定版将移除 Git 仓库并安装最新的稳定发布版本，后续仅使用稳定版更新。",
+            "releaseMessage": "切换到稳定版将检出最新的发布标签。可随时切换回每日构建版。",
             "switching": "正在切换到 {channel} 频道...",
             "completed": "已切换到 {channel} 频道",
             "failed": "切换频道失败"
@@ -1924,6 +1997,12 @@
             "repairBulkComplete": "修复完成：{repaired} 个已修复，{skipped} 个已跳过（共 {total} 个）",
             "repairBulkSkipped": "所选 {total} 个配方无需修复",
             "repairBulkFailed": "修复所选配方失败：{message}",
+            "rematchComplete": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
+            "rematchCompleteErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
+            "rematchAllFailed": "{failures}/{total} 个所选食谱重新匹配失败",
+            "rematchUnmatched": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
+            "rematchSkipped": "{total} 个所选食谱均无需重新匹配",
+            "rematchFailed": "重新匹配所选食谱失败：{message}",
             "reimporting": "正在从源重新导入配方...",
             "reimportSuccess": "配方已从源重新导入成功",
             "reimportBulkComplete": "重新导入完成：{completed} 个已导入，{failed} 个失败（共 {total} 个）",
@@ -2032,7 +2111,6 @@
             "presetNameTooLong": "预设名称不能超过 {max} 个字符",
             "presetNameInvalidChars": "预设名称包含无效字符",
             "presetNameExists": "已存在同名预设",
-            "maxPresetsReached": "最多允许 {max} 个预设。删除一个以添加更多。",
             "presetNotFound": "预设未找到",
             "invalidPreset": "无效的预设数据",
             "deletePresetFailed": "删除预设失败",
@@ -2060,6 +2138,14 @@
             "updateSuccess": "触发词更新成功",
             "updateFailed": "触发词更新失败",
             "copyFailed": "复制失败"
+        },
+        "undo": {
+            "action": "撤销",
+            "deleted": "已删除 {name}",
+            "deletedBulk": "已删除 {count} 个项目",
+            "expired": "撤销窗口已过期，项目已被永久删除。",
+            "failed": "撤销失败：{error}",
+            "restored": "项目已恢复"
         },
         "virtual": {
             "loadFailed": "加载项目失败",
@@ -2124,6 +2210,7 @@
             "fileRenameFailed": "重命名文件失败：{error}",
             "previewUpdated": "预览图片更新成功",
             "previewUploadFailed": "上传预览图片失败",
+            "previewDropInvalid": "不支持的文件类型：{name}。请拖入图片或 MP4 视频。",
             "refreshComplete": "{action} 完成",
             "refreshFailed": "{action} {type} 失败",
             "metadataRefreshed": "元数据刷新成功",
@@ -2250,10 +2337,5 @@
             "rebuildFailed": "重建缓存失败：{error}",
             "retry": "重试"
         }
-    },
-    "outputs": {
-        "title": "输出",
-        "metadataAvailable": "元数据可用",
-        "metadataUnavailable": "元数据不可用"
     }
 }

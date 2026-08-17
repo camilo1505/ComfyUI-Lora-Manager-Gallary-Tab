@@ -186,6 +186,16 @@
             "cancelled": "Réparation annulée. {count} recettes ont été réparées.",
             "error": "Échec de la réparation des recettes : {message}"
         },
+        "rematchRecipes": {
+            "label": "Réassocier les recettes aux modèles locaux",
+            "loading": "Réassociation des recettes aux modèles locaux...",
+            "success": "{entries} entrées associées dans {recipes} recettes",
+            "successErrors": "{entries} entrées associées dans {recipes} recettes, {failures} échecs",
+            "allFailed": "Échec de la réassociation de {failures} recettes sur {total}",
+            "noMatch": "Aucune correspondance locale trouvée pour {entries} entrées dans {recipes} recettes",
+            "cancelled": "Réassociation annulée. {recipes} recettes mises à jour ({entries} entrées)",
+            "error": "Échec de la réassociation des recettes : {message}"
+        },
         "manageExcludedModels": {
             "label": "Gérer les modèles exclus"
         },
@@ -200,8 +210,8 @@
             "recipes": "Recipes",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
-            "statistics": "Statistiques",
-            "outputs": "Sorties"
+            "outputs": "Sorties",
+            "statistics": "Statistiques"
         },
         "search": {
             "placeholder": "Rechercher",
@@ -450,6 +460,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "Attention : Des densités plus élevées peuvent causer des problèmes de performance sur les systèmes avec des ressources limitées.",
+            "recipesLayout": "Disposition des recettes",
+            "recipesLayoutHelp": "Choisissez comment les cartes de recettes sont organisées : une grille uniforme ou une disposition masonry (style Pinterest) qui préserve le rapport d'aspect de chaque image.",
+            "recipesLayoutOptions": {
+                "grid": "Grille",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "Afficher la barre latérale des dossiers",
             "showFolderSidebarHelp": "Activez ou désactivez la barre latérale de navigation des dossiers sur les pages de modèles. Lorsqu'elle est désactivée, la barre latérale et la zone de survol restent masquées.",
             "cardInfoDisplay": "Affichage des informations de carte",
@@ -607,6 +623,10 @@
             "label": "Masquer les mises à jour en accès anticipé",
             "help": "Seulement les mises à jour en accès anticipé"
         },
+        "hidePaidUpdates": {
+            "label": "[TODO: Translate] Hide Paid Updates",
+            "help": "[TODO: Translate] When enabled, models with only paid updates will not show 'Update available' badge"
+        },
         "licenseIcons": {
             "useNewStyle": "Utiliser les icônes de licence mises à jour",
             "useNewStyleHelp": "Afficher les permissions de licence avec des indicateurs colorés (nouveau style) ou des icônes de restriction uniquement (style classique). Reprend le design actuel de CivitAI."
@@ -679,6 +699,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "Personnalisé (compatible OpenAI)"
             },
@@ -715,7 +736,9 @@
                 "versionsCount": "Versions locales",
                 "versionsCountDesc": "Plus de versions d'abord",
                 "versionsCountAsc": "Moins de versions d'abord",
-                "versionIdDesc": "Version la plus récente d'abord"
+                "versionIdDesc": "Version la plus récente d'abord",
+                "random": "Aléatoire",
+                "randomAction": "Aléatoire (mélanger)"
             },
             "refresh": {
                 "title": "Actualiser la liste des modèles",
@@ -760,6 +783,7 @@
             "copyAll": "Copier toute la syntaxe",
             "refreshAll": "Actualiser toutes les métadonnées",
             "repairMetadata": "Réparer les métadonnées de la sélection",
+            "rematchMetadata": "Réassocier la sélection aux modèles locaux",
             "reimportMetadata": "Ré-importer depuis la source",
             "checkUpdates": "Vérifier les mises à jour pour la sélection",
             "moveAll": "Déplacer tout vers un dossier",
@@ -772,6 +796,8 @@
             "deleteAll": "Supprimer la sélection",
             "downloadMissingLoras": "Télécharger les LoRAs manquants",
             "downloadExamples": "Télécharger les images d'exemple",
+            "downloadMissingExamples": "Télécharger les manquantes",
+            "reprocessExamples": "Tout retraiter",
             "clear": "Effacer la sélection",
             "skipMetadataRefreshCount": "Ignorer（{count} modèles）",
             "resumeMetadataRefreshCount": "Reprendre（{count} modèles）",
@@ -807,10 +833,13 @@
             "sendToWorkflowReplace": "Envoyer vers le workflow (Remplacer)",
             "openExamples": "Ouvrir le dossier d'exemples",
             "downloadExamples": "Télécharger les images d'exemple",
+            "downloadMissingExamples": "Télécharger les manquantes",
+            "reprocessExamples": "Tout retraiter",
             "replacePreview": "Remplacer l'aperçu",
             "setContentRating": "Définir la classification du contenu",
             "moveToFolder": "Déplacer vers un dossier",
             "repairMetadata": "Réparer les métadonnées",
+            "rematchMetadata": "Réassocier aux modèles locaux",
             "reimportMetadata": "Ré-importer depuis la source",
             "excludeModel": "Exclure le modèle",
             "restoreModel": "Restaurer le modèle",
@@ -896,7 +925,9 @@
                 "dateAsc": "Plus ancien",
                 "lorasCount": "Nombre de LoRAs",
                 "lorasCountDesc": "Plus",
-                "lorasCountAsc": "Moins"
+                "lorasCountAsc": "Moins",
+                "opened": "Récemment ouverts",
+                "openedDesc": "Récemment ouverts"
             },
             "refresh": {
                 "title": "Actualiser la liste des recipes",
@@ -907,12 +938,25 @@
             "favorites": {
                 "title": "Afficher uniquement les favoris",
                 "action": "Favoris"
+            },
+            "layout": {
+                "title": "Disposition des recettes",
+                "grid": "Disposition en grille",
+                "masonry": "Disposition masonry (style Pinterest, préserve le rapport d'aspect de l'image)"
             }
         },
         "duplicates": {
             "found": "Trouvé {count} groupes de doublons",
+            "noGroups": "Aucun groupe de doublons trouvé avec le critère de correspondance actuel",
             "keepLatest": "Garder les dernières versions",
-            "deleteSelected": "Supprimer la sélection"
+            "deleteSelected": "Supprimer la sélection",
+            "includePromptLabel": "Inclure le prompt dans la correspondance",
+            "basis": {
+                "loraCombo": "Correspondance : combinaison de LoRA",
+                "loraComboAndPrompt": "Correspondance : combinaison de LoRA + prompt",
+                "hintLoraCombo": "Les recettes avec les mêmes LoRAs et des forces identiques sont regroupées.",
+                "hintPromptIncluded": "Les recettes ne sont regroupées que si elles utilisent les mêmes LoRAs avec des forces identiques ET ont le même prompt."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1021,6 +1065,11 @@
     },
     "embeddings": {
         "title": "Modèles Embedding"
+    },
+    "outputs": {
+        "title": "Sorties",
+        "metadataAvailable": "Métadonnées disponibles",
+        "metadataUnavailable": "Métadonnées non disponibles"
     },
     "sidebar": {
         "modelRoot": "Racine",
@@ -1245,8 +1294,13 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "Libère {size}",
             "title": "Supprimer le modèle",
-            "message": "Êtes-vous sûr de vouloir supprimer ce modèle et tous les fichiers associés ?"
+            "message": "Êtes-vous sûr de vouloir supprimer ce modèle et tous les fichiers associés ?",
+            "recoverableWarning": "Le fichier sera définitivement supprimé après 20 secondes, sauf si vous annulez."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "Cette action peut être annulée pendant 20 secondes."
         },
         "excludeModel": {
             "title": "Exclure le modèle",
@@ -1511,6 +1565,8 @@
                     "newerTooltip": "Cette version est plus récente que votre dernière version locale",
                     "earlyAccess": "Accès anticipé",
                     "earlyAccessTooltip": "Cette version nécessite actuellement l'accès anticipé Civitai",
+                    "paid": "[TODO: Translate] Paid",
+                    "paidTooltip": "[TODO: Translate] This version requires payment to download",
                     "ignored": "Ignorée",
                     "ignoredTooltip": "Les notifications de mise à jour sont désactivées pour cette version",
                     "onSiteOnly": "Uniquement sur Site",
@@ -1520,6 +1576,7 @@
                     "download": "Télécharger",
                     "downloadTooltip": "Télécharger cette version",
                     "downloadEarlyAccessTooltip": "Télécharger cette version en accès anticipé depuis Civitai",
+                    "downloadPaidTooltip": "[TODO: Translate] Download this paid version from Civitai",
                     "downloadNotAllowedTooltip": "Cette version n'est disponible que pour la génération sur le site Civitai",
                     "delete": "Supprimer",
                     "deleteTooltip": "Supprimer cette version locale",
@@ -1576,6 +1633,21 @@
             "downloadCsv": "Télécharger CSV",
             "columnModelName": "Nom du modèle",
             "columnError": "Erreur"
+        },
+        "downloadBatchSummary": {
+            "title": "Résumé du téléchargement groupé",
+            "statSuccess": "Réussis",
+            "statFailed": "Échoués",
+            "statTotal": "Total",
+            "successMessage": "Les {count} modèles ont été téléchargés avec succès",
+            "completedWithErrors": "Terminé avec des erreurs",
+            "failed": "Échec du téléchargement",
+            "failedItems": "Éléments échoués ({count})",
+            "columnName": "Nom du modèle",
+            "columnError": "Erreur",
+            "close": "Fermer",
+            "copyReport": "Copier le rapport",
+            "retryFailed": "Réessayer les échecs ({count})"
         }
     },
     "modelTags": {
@@ -1674,6 +1746,7 @@
             "recipeReplaced": "Recipe remplacée dans le workflow",
             "recipeFailedToSend": "Échec de l'envoi de la recipe au workflow",
             "noMatchingNodes": "Aucun nœud compatible disponible dans le workflow actuel",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "Aucun nœud cible sélectionné",
             "modelUpdated": "Modèle mis à jour dans le workflow",
             "modelFailed": "Échec de la mise à jour du nœud modèle",
@@ -1783,7 +1856,7 @@
             "nightlyTitle": "Passer au canal Nightly",
             "nightlyMessage": "Passer a Nightly initialisera un depot Git et suivra les derniers commits de la branche main. Les mises a jour sont plus frequentes mais peuvent etre instables. Vous pouvez revenir a Release a tout moment.",
             "releaseTitle": "Passer au canal Release",
-            "releaseMessage": "Passer a Release supprimera le depot Git et installera la derniere version stable. Les futures mises a jour utiliseront uniquement des versions stables.",
+            "releaseMessage": "Passer a Release passera au dernier tag de version stable. Vous pouvez revenir a Nightly a tout moment.",
             "switching": "Passage au canal {channel}...",
             "completed": "Basculement vers le canal {channel} reussi",
             "failed": "Echec du changement de canal"
@@ -1924,6 +1997,12 @@
             "repairBulkComplete": "Réparation terminée : {repaired} réparée(s), {skipped} ignorée(s) (sur {total})",
             "repairBulkSkipped": "Aucune réparation nécessaire parmi les {total} recettes sélectionnées",
             "repairBulkFailed": "Échec de la réparation des recettes sélectionnées : {message}",
+            "rematchComplete": "{entries} entrées associées dans {recipes} recettes",
+            "rematchCompleteErrors": "{entries} entrées associées dans {recipes} recettes, {failures} échecs",
+            "rematchAllFailed": "Échec de la réassociation de {failures} recettes sélectionnées sur {total}",
+            "rematchUnmatched": "Aucune correspondance locale trouvée pour {entries} entrées dans {recipes} recettes",
+            "rematchSkipped": "Aucune des {total} recettes sélectionnées ne nécessite de réassociation",
+            "rematchFailed": "Échec de la réassociation des recettes sélectionnées : {message}",
             "reimporting": "Ré-import de la recette depuis la source...",
             "reimportSuccess": "Recette ré-importée avec succès",
             "reimportBulkComplete": "Ré-import terminé : {completed} ré-importé(s), {failed} échec(s) (sur {total})",
@@ -2032,7 +2111,6 @@
             "presetNameTooLong": "Le nom du préréglage doit contenir au maximum {max} caractères",
             "presetNameInvalidChars": "Le nom du préréglage contient des caractères invalides",
             "presetNameExists": "Un préréglage avec ce nom existe déjà",
-            "maxPresetsReached": "Maximum {max} préréglages autorisés. Supprimez-en un pour en ajouter plus.",
             "presetNotFound": "Préréglage non trouvé",
             "invalidPreset": "Données de préréglage invalides",
             "deletePresetFailed": "Échec de la suppression du préréglage",
@@ -2060,6 +2138,14 @@
             "updateSuccess": "Mots-clés mis à jour avec succès",
             "updateFailed": "Échec de la mise à jour des mots-clés",
             "copyFailed": "Échec de la copie"
+        },
+        "undo": {
+            "action": "Annuler",
+            "deleted": "Supprimé : {name}",
+            "deletedBulk": "{count} élément(s) supprimé(s)",
+            "expired": "La fenêtre d'annulation a expiré. L'élément a été définitivement supprimé.",
+            "failed": "Échec de l'annulation : {error}",
+            "restored": "Élément restauré"
         },
         "virtual": {
             "loadFailed": "Échec du chargement des éléments",
@@ -2124,6 +2210,7 @@
             "fileRenameFailed": "Échec du renommage du fichier : {error}",
             "previewUpdated": "Aperçu mis à jour avec succès",
             "previewUploadFailed": "Échec du téléchargement de l'image d'aperçu",
+            "previewDropInvalid": "Type de fichier non pris en charge : {name}. Déposez plutôt une image ou une vidéo MP4.",
             "refreshComplete": "{action} terminé",
             "refreshFailed": "Échec de {action} des {type}s",
             "metadataRefreshed": "Métadonnées actualisées avec succès",
@@ -2250,10 +2337,5 @@
             "rebuildFailed": "Échec de la reconstruction du cache : {error}",
             "retry": "Réessayer"
         }
-    },
-    "outputs": {
-        "title": "Sorties",
-        "metadataAvailable": "Métadonnées disponibles",
-        "metadataUnavailable": "Métadonnées non disponibles"
     }
 }

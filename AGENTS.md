@@ -32,7 +32,7 @@ COVERAGE_FILE=coverage/backend/.coverage pytest \
   --cov-report=json:coverage/backend/coverage.json
 ```
 
-### Frontend
+### Frontend Development (LoRA Manager Web UI)
 
 ```bash
 npm install
@@ -161,9 +161,9 @@ python scripts/sync_translation_keys.py   # Run after UI string changes
 
 ## Frontend UI Architecture
 
-### 1. Standalone Web UI
+### 1. LoRA Manager Web UI
 - Location: `./static/` and `./templates/`
-- Tech: Vanilla JS + CSS, served by standalone server
+- Tech: Vanilla JS + CSS, served by the hosting server (ComfyUI app in plugin mode, `standalone.py` in standalone mode)
 - Tests via npm in root directory
 
 ### 2. ComfyUI Custom Node Widgets

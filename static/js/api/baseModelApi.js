@@ -201,8 +201,13 @@ export class BaseModelApiClient {
                 if (state.virtualScroller) {
                     state.virtualScroller.removeItemByFilePath(filePath);
                 }
-                showToast('toast.api.deleteSuccess', { type: this.apiConfig.config.displayName }, 'success');
-                return true;
+                const batchId = data.batch_id || null;
+                if (!batchId) {
+                    // Not staged (staging failed): keep the legacy toast.
+                    // When staged, the caller shows the undo action toast instead.
+                    showToast('toast.api.deleteSuccess', { type: this.apiConfig.config.displayName }, 'success');
+                }
+                return { success: true, batch_id: batchId };
             } else {
                 throw new Error(data.error || `Failed to delete ${this.apiConfig.config.singularName}`);
             }
@@ -1228,7 +1233,7 @@ export class BaseModelApiClient {
         }
     }
 
-    async downloadModel(modelId, versionId, modelRoot, relativePath, useDefaultPaths = false, downloadId, source = null, fileParams = null) {
+    async downloadModel(modelId, versionId, modelRoot, relativePath, useDefaultPaths = false, downloadId, source = null, fileParams = null, useSaveDirAsRoot = false) {
         try {
             const response = await fetch(DOWNLOAD_ENDPOINTS.download, {
                 method: 'POST',
@@ -1239,6 +1244,7 @@ export class BaseModelApiClient {
                     model_root: modelRoot,
                     relative_path: relativePath,
                     use_default_paths: useDefaultPaths,
+                    use_save_dir_as_root: useSaveDirAsRoot,
                     download_id: downloadId,
                     ...(source ? { source } : {}),
                     ...(fileParams ? { file_params: fileParams } : {})
@@ -1622,9 +1628,14 @@ export class BaseModelApiClient {
             if (result.success) {
                 return {
                     success: true,
-                    deleted_count: result.deleted_count,
+                    deleted_count: result.deleted_count ?? result.total_deleted,
                     failed_count: result.failed_count || 0,
-                    errors: result.errors || []
+                    errors: result.errors || [],
+                    // Undo batch fields — batch_id on merge success, batch_ids
+                    // array on merge failure (same success dict for the
+                    // status='cancelled' staged-subset path)
+                    batch_id: result.batch_id || null,
+                    batch_ids: result.batch_ids || null
                 };
             } else {
                 throw new Error(result.error || `Failed to delete ${this.apiConfig.config.displayName.toLowerCase()}s`);
@@ -1641,7 +1652,7 @@ export class BaseModelApiClient {
         }
     }
 
-    async downloadExampleImages(modelHashes, modelTypes = null) {
+    async downloadExampleImages(modelHashes, modelTypes = null, { force = true } = {}) {
         let ws = null;
 
         await state.loadingManager.showWithProgress(async (loading) => {
@@ -1700,8 +1711,13 @@ export class BaseModelApiClient {
                 // Determine optimize setting
                 const optimize = state.global?.settings?.optimize_example_images ?? true;
 
+                // force=false routes to the regular endpoint, which skips already-processed models
+                const endpoint = force
+                    ? DOWNLOAD_ENDPOINTS.exampleImages
+                    : DOWNLOAD_ENDPOINTS.exampleImagesMissing;
+
                 // Make the API request to start the download process
-                const response = await fetch(DOWNLOAD_ENDPOINTS.exampleImages, {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1710,6 +1726,7 @@ export class BaseModelApiClient {
                         model_hashes: modelHashes,
                         output_dir: outputDir,
                         optimize: optimize,
+                        force: force,
                         model_types: modelTypes || [this.apiConfig.config.singularName]
                     })
                 });

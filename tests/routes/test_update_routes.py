@@ -24,7 +24,7 @@ def _fake_request(body=None, query_params=None):
     async def _json():
         return body or {}
 
-    req.json = _json
+    req.json = _json  # pyright: ignore[reportAttributeAccessIssue]
     return req
 
 
@@ -131,7 +131,7 @@ async def test_perform_git_update_preserves_user_dirs(monkeypatch, tmp_path):
     class FakeHeads:
         def __getitem__(self, name):
             class Head:
-                def checkout(self_inner):
+                def checkout(self):
                     calls.append(("head-checkout", (name,)))
             return Head()
 
@@ -344,7 +344,7 @@ async def test_switch_channel_to_nightly_with_git_calls_git_update(monkeypatch, 
 
 
 @pytest.mark.asyncio
-async def test_switch_channel_to_release_with_git_downloads_zip(monkeypatch, tmp_path):
+async def test_switch_channel_to_release_with_git_calls_git_update(monkeypatch, tmp_path):
     routes_file = tmp_path / "py" / "routes" / "update_routes.py"
     routes_file.parent.mkdir(parents=True)
     routes_file.write_text("")
@@ -353,11 +353,11 @@ async def test_switch_channel_to_release_with_git_downloads_zip(monkeypatch, tmp
 
     (tmp_path / ".git").mkdir()
 
-    async def _fake_zip(*args, **kwargs):
+    async def _fake_git_update(*args, **kwargs):
         return True, "v9.9.9"
 
     monkeypatch.setattr(
-        update_routes.UpdateRoutes, "_download_and_replace_zip", _fake_zip
+        update_routes.UpdateRoutes, "_perform_git_update", _fake_git_update
     )
 
     req = _fake_request({"channel": "release"})

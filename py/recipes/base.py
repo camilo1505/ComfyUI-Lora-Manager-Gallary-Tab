@@ -1,3 +1,7 @@
+# pyright: reportImportCycles=false
+# Lazy (function-local) imports still count as static edges in basedpyright's
+# reportImportCycles, so the ServiceRegistry singleton pattern necessarily forms
+# import cycles. Breaking them would require an architectural refactor.
 """Base classes for recipe parsers."""
 
 import json
@@ -7,7 +11,7 @@ import re
 from typing import Dict, List, Any, Optional, Tuple
 from abc import ABC, abstractmethod
 from ..config import config
-from ..utils.constants import VALID_LORA_TYPES, VALID_CHECKPOINT_SUB_TYPES
+from ..utils.constants import MODEL_WEIGHT_FILE_TYPES, VALID_LORA_TYPES, VALID_CHECKPOINT_SUB_TYPES
 from ..utils.civitai_utils import rewrite_preview_url
 
 logger = logging.getLogger(__name__)
@@ -38,7 +42,7 @@ class RecipeMetadataParser(ABC):
         pass
     
     @staticmethod
-    async def populate_lora_from_civitai(lora_entry: Dict[str, Any], civitai_info_tuple: Tuple[Dict[str, Any], Optional[str]], 
+    async def populate_lora_from_civitai(lora_entry: Dict[str, Any], civitai_info_tuple: Tuple[Dict[str, Any] | None, str | None] | Dict[str, Any],
                                          recipe_scanner=None, base_model_counts=None, hash_value=None) -> Optional[Dict[str, Any]]:
         """
         Populate a lora entry with information from Civitai API response
@@ -151,9 +155,9 @@ class RecipeMetadataParser(ABC):
             
             # Process file information if available
             if 'files' in civitai_info:
-                # Find the primary model file (type="Model" and primary=true) in the files list
+                # Find the primary model file (weights-type and primary=true) in the files list
                 model_file = next((file for file in civitai_info.get('files', []) 
-                                    if file.get('type') == 'Model' and file.get('primary') == True), None)
+                                    if file.get('type') in MODEL_WEIGHT_FILE_TYPES and file.get('primary') == True), None)
                 
                 if model_file:
                     # Get size
@@ -175,10 +179,18 @@ class RecipeMetadataParser(ABC):
                                 lora_entry['localPath'] = local_path
                                 lora_entry['file_name'] = os.path.splitext(os.path.basename(local_path))[0]
                                 
-                                # Get thumbnail from local preview if available
+                                # Get thumbnail from local preview if available.
+                                # Match the cache item by local path first (get_path_by_hash
+                                # cascade: 10-char autov2 / 12-char autov3), then by hash.
                                 lora_cache = await lora_scanner.get_cached_data()
-                                lora_item = next((item for item in lora_cache.raw_data 
-                                                    if item['sha256'].lower() == lora_entry['hash'].lower()), None)
+                                h = (lora_entry.get("hash") or "").lower()
+                                lora_item = next((item for item in lora_cache.raw_data
+                                                  if (item.get("file_path") or "") == local_path), None)
+                                if lora_item is None:
+                                    lora_item = next((item for item in lora_cache.raw_data
+                                                      if (item.get("sha256") or "").lower() == h
+                                                      or (item.get("autov3") or "").lower() == h
+                                                      or (item.get("sha256") or "")[:10].lower() == h), None)
                                 if lora_item and 'preview_url' in lora_item:
                                     lora_entry['thumbnailUrl'] = config.get_preview_static_url(lora_item['preview_url'])
                             except Exception as e:
@@ -194,7 +206,7 @@ class RecipeMetadataParser(ABC):
         return lora_entry
     
     @staticmethod
-    async def populate_checkpoint_from_civitai(checkpoint: Dict[str, Any], civitai_info: Dict[str, Any]) -> Dict[str, Any]:
+    async def populate_checkpoint_from_civitai(checkpoint: Dict[str, Any], civitai_info: Dict[str, Any] | Tuple[Dict[str, Any] | None, str | None] | None) -> Dict[str, Any]:
         """
         Populate checkpoint information from Civitai API response
         
@@ -249,11 +261,21 @@ class RecipeMetadataParser(ABC):
             checkpoint['id'] = civitai_data.get('id', 0)
 
             if 'files' in civitai_data:
+                # Prefer the file CivitAI marked primary; fall back to any
+                # weights-type file (providers without primary flags).
                 model_file = next(
                     (
                         file
                         for file in civitai_data.get('files', [])
-                        if file.get('type') == 'Model'
+                        if file.get('type') in MODEL_WEIGHT_FILE_TYPES
+                        and file.get('primary') is True
+                    ),
+                    None,
+                ) or next(
+                    (
+                        file
+                        for file in civitai_data.get('files', [])
+                        if file.get('type') in MODEL_WEIGHT_FILE_TYPES
                     ),
                     None,
                 )

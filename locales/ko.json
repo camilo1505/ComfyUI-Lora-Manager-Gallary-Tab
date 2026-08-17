@@ -186,6 +186,16 @@
             "cancelled": "수리가 취소되었습니다. {count}개의 레시피가 수리되었습니다.",
             "error": "레시피 복구 실패: {message}"
         },
+        "rematchRecipes": {
+            "label": "레시피를 로컬 모델에 다시 매칭",
+            "loading": "레시피를 로컬 모델에 다시 매칭하는 중...",
+            "success": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다",
+            "successErrors": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다. {failures}개 실패",
+            "allFailed": "{total}개 레시피 중 {failures}개 재매칭 실패",
+            "noMatch": "{recipes}개 레시피에서 {entries}개 항목의 로컬 매칭을 찾지 못했습니다",
+            "cancelled": "재매칭이 취소되었습니다. {recipes}개 레시피 업데이트됨({entries}개 항목)",
+            "error": "레시피 재매칭 실패: {message}"
+        },
         "manageExcludedModels": {
             "label": "제외된 모델 관리"
         },
@@ -200,8 +210,8 @@
             "recipes": "레시피",
             "checkpoints": "Checkpoint",
             "embeddings": "Embedding",
-            "statistics": "통계",
-            "outputs": "출력"
+            "outputs": "출력",
+            "statistics": "통계"
         },
         "search": {
             "placeholder": "검색",
@@ -450,6 +460,12 @@
                 "compact": "7개 (1080p), 8개 (2K), 10개 (4K)"
             },
             "displayDensityWarning": "경고: 높은 밀도는 리소스가 제한된 시스템에서 성능 문제를 일으킬 수 있습니다.",
+            "recipesLayout": "레시피 레이아웃",
+            "recipesLayoutHelp": "레시피 카드의 배열 방식을 선택하세요: 균일한 그리드 또는 각 이미지의 종횡비를 유지하는 메이슨리(Pinterest 스타일) 레이아웃.",
+            "recipesLayoutOptions": {
+                "grid": "그리드",
+                "masonry": "메이슨리"
+            },
             "showFolderSidebar": "폴더 사이드바 표시",
             "showFolderSidebarHelp": "모델 페이지에서 폴더 탐색 사이드바를 켜거나 끕니다. 비활성화하면 사이드바와 호버 영역이 표시되지 않습니다.",
             "cardInfoDisplay": "카드 정보 표시",
@@ -607,6 +623,10 @@
             "label": "얼리 액세스 업데이트 숨기기",
             "help": "얼리 액세스 업데이트만"
         },
+        "hidePaidUpdates": {
+            "label": "[TODO: Translate] Hide Paid Updates",
+            "help": "[TODO: Translate] When enabled, models with only paid updates will not show 'Update available' badge"
+        },
         "licenseIcons": {
             "useNewStyle": "업데이트된 라이선스 아이콘 사용",
             "useNewStyleHelp": "색상 표시기가 있는 라이선스 권한(새 스타일) 또는 제한 전용 아이콘(클래식 스타일)을 표시합니다. 현재 CivitAI 디자인을 반영합니다."
@@ -679,6 +699,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "사용자 정의 (OpenAI 호환)"
             },
@@ -715,7 +736,9 @@
                 "versionsCount": "로컬 버전 수",
                 "versionsCountDesc": "버전 수 많은 순",
                 "versionsCountAsc": "버전 수 적은 순",
-                "versionIdDesc": "최신 버전순"
+                "versionIdDesc": "최신 버전순",
+                "random": "랜덤",
+                "randomAction": "셔플 (무작위)"
             },
             "refresh": {
                 "title": "모델 목록 새로고침",
@@ -760,6 +783,7 @@
             "copyAll": "모든 문법 복사",
             "refreshAll": "모든 메타데이터 새로고침",
             "repairMetadata": "선택한 레시피 메타데이터 복구",
+            "rematchMetadata": "선택 항목을 로컬 모델에 다시 매칭",
             "reimportMetadata": "소스에서 다시 가져오기",
             "checkUpdates": "선택 항목 업데이트 확인",
             "moveAll": "모두 폴더로 이동",
@@ -772,6 +796,8 @@
             "deleteAll": "선택된 항목 삭제",
             "downloadMissingLoras": "누락된 LoRA 다운로드",
             "downloadExamples": "예시 이미지 다운로드",
+            "downloadMissingExamples": "누락된 것만 다운로드",
+            "reprocessExamples": "모두 다시 처리",
             "clear": "선택 지우기",
             "skipMetadataRefreshCount": "건너뛰기（{count}개 모델）",
             "resumeMetadataRefreshCount": "재개（{count}개 모델）",
@@ -807,10 +833,13 @@
             "sendToWorkflowReplace": "워크플로로 전송 (교체)",
             "openExamples": "예시 폴더 열기",
             "downloadExamples": "예시 이미지 다운로드",
+            "downloadMissingExamples": "누락된 것만 다운로드",
+            "reprocessExamples": "모두 다시 처리",
             "replacePreview": "미리보기 교체",
             "setContentRating": "콘텐츠 등급 설정",
             "moveToFolder": "폴더로 이동",
             "repairMetadata": "메타데이터 복구",
+            "rematchMetadata": "로컬 모델에 다시 매칭",
             "reimportMetadata": "소스에서 다시 가져오기",
             "excludeModel": "모델 제외",
             "restoreModel": "모델 복원",
@@ -896,7 +925,9 @@
                 "dateAsc": "오래된순",
                 "lorasCount": "LoRA 수",
                 "lorasCountDesc": "많은순",
-                "lorasCountAsc": "적은순"
+                "lorasCountAsc": "적은순",
+                "opened": "최근에 연",
+                "openedDesc": "최근에 연"
             },
             "refresh": {
                 "title": "레시피 목록 새로고침",
@@ -907,12 +938,25 @@
             "favorites": {
                 "title": "즐겨찾기만 표시",
                 "action": "즐겨찾기"
+            },
+            "layout": {
+                "title": "레시피 레이아웃",
+                "grid": "그리드 레이아웃",
+                "masonry": "메이슨리 레이아웃 (Pinterest 스타일, 이미지 종횡비 유지)"
             }
         },
         "duplicates": {
             "found": "{count}개의 중복 그룹 발견",
+            "noGroups": "현재 일치 기준으로 중복 그룹을 찾을 수 없습니다",
             "keepLatest": "최신 버전 유지",
-            "deleteSelected": "선택된 항목 삭제"
+            "deleteSelected": "선택된 항목 삭제",
+            "includePromptLabel": "일치 항목에 프롬프트 포함",
+            "basis": {
+                "loraCombo": "일치 기준: LoRA 조합",
+                "loraComboAndPrompt": "일치 기준: LoRA 조합 + 프롬프트",
+                "hintLoraCombo": "동일한 LoRA를 동일한 강도로 사용하는 레시피가 그룹화됩니다.",
+                "hintPromptIncluded": "동일한 LoRA를 동일한 강도로 사용하고 프롬프트도 동일한 경우에만 레시피가 그룹화됩니다."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1021,6 +1065,11 @@
     },
     "embeddings": {
         "title": "Embedding 모델"
+    },
+    "outputs": {
+        "title": "출력",
+        "metadataAvailable": "메타데이터 있음",
+        "metadataUnavailable": "메타데이터 없음"
     },
     "sidebar": {
         "modelRoot": "루트",
@@ -1245,8 +1294,13 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "{size} 확보",
             "title": "모델 삭제",
-            "message": "이 모델과 모든 관련 파일을 삭제하시겠습니까?"
+            "message": "이 모델과 모든 관련 파일을 삭제하시겠습니까?",
+            "recoverableWarning": "실행 취소하지 않으면 20초 후에 파일이 영구적으로 삭제됩니다."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "이 작업은 20초 이내에 실행 취소할 수 있습니다."
         },
         "excludeModel": {
             "title": "모델 제외",
@@ -1511,6 +1565,8 @@
                     "newerTooltip": "이 버전은 로컬의 최신 버전보다 더 새롭습니다",
                     "earlyAccess": "얼리 액세스",
                     "earlyAccessTooltip": "이 버전은 현재 Civitai 얼리 액세스가 필요합니다",
+                    "paid": "[TODO: Translate] Paid",
+                    "paidTooltip": "[TODO: Translate] This version requires payment to download",
                     "ignored": "무시됨",
                     "ignoredTooltip": "이 버전은 업데이트 알림이 비활성화되어 있습니다",
                     "onSiteOnly": "사이트 내 전용",
@@ -1520,6 +1576,7 @@
                     "download": "다운로드",
                     "downloadTooltip": "이 버전 다운로드",
                     "downloadEarlyAccessTooltip": "Civitai에서 이 얼리 액세스 버전 다운로드",
+                    "downloadPaidTooltip": "[TODO: Translate] Download this paid version from Civitai",
                     "downloadNotAllowedTooltip": "이 버전은 Civitai 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다",
                     "delete": "삭제",
                     "deleteTooltip": "이 로컬 버전 삭제",
@@ -1576,6 +1633,21 @@
             "downloadCsv": "CSV 다운로드",
             "columnModelName": "모델 이름",
             "columnError": "오류"
+        },
+        "downloadBatchSummary": {
+            "title": "일괄 다운로드 요약",
+            "statSuccess": "성공",
+            "statFailed": "실패",
+            "statTotal": "전체",
+            "successMessage": "{count}개 모델이 모두 성공적으로 다운로드되었습니다",
+            "completedWithErrors": "오류와 함께 완료됨",
+            "failed": "다운로드 실패",
+            "failedItems": "실패한 항목 ({count})",
+            "columnName": "모델 이름",
+            "columnError": "오류",
+            "close": "닫기",
+            "copyReport": "보고서 복사",
+            "retryFailed": "실패 항목 재시도 ({count})"
         }
     },
     "modelTags": {
@@ -1674,6 +1746,7 @@
             "recipeReplaced": "레시피가 워크플로에서 교체되었습니다",
             "recipeFailedToSend": "레시피를 워크플로로 전송하지 못했습니다",
             "noMatchingNodes": "현재 워크플로에서 호환되는 노드가 없습니다",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "대상 노드가 선택되지 않았습니다",
             "modelUpdated": "모델이 워크플로에서 업데이트되었습니다",
             "modelFailed": "모델 노드 업데이트 실패",
@@ -1783,7 +1856,7 @@
             "nightlyTitle": "나이틀리 채널로 전환",
             "nightlyMessage": "나이틀리로 전환하면 Git 저장소가 초기화되고 main 브랜치의 최신 커밋을 추적합니다. 업데이트 빈도는 높지만 불안정할 수 있습니다. 언제든지 릴리스로 돌아갈 수 있습니다.",
             "releaseTitle": "릴리스 채널로 전환",
-            "releaseMessage": "릴리스로 전환하면 Git 저장소가 제거되고 최신 안정 버전이 설치됩니다. 이후 업데이트는 안정 버전만 사용됩니다.",
+            "releaseMessage": "릴리스로 전환하면 최신 안정 버전 태그로 체크아웃됩니다. 언제든지 나이틀리로 돌아갈 수 있습니다.",
             "switching": "{channel} 채널로 전환 중...",
             "completed": "{channel} 채널로 전환 완료",
             "failed": "채널 전환 실패"
@@ -1924,6 +1997,12 @@
             "repairBulkComplete": "복구 완료: {repaired}개 복구, {skipped}개 건너뜀 (총 {total}개)",
             "repairBulkSkipped": "선택한 {total}개 레시피는 복구가 필요하지 않습니다",
             "repairBulkFailed": "선택한 레시피 복구 실패: {message}",
+            "rematchComplete": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다",
+            "rematchCompleteErrors": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다. {failures}개 실패",
+            "rematchAllFailed": "선택한 {total}개 레시피 중 {failures}개 재매칭 실패",
+            "rematchUnmatched": "{recipes}개 레시피에서 {entries}개 항목의 로컬 매칭을 찾지 못했습니다",
+            "rematchSkipped": "선택한 {total}개 레시피는 재매칭이 필요하지 않습니다",
+            "rematchFailed": "선택한 레시피 재매칭 실패: {message}",
             "reimporting": "소스에서 레시피를 다시 가져오는 중...",
             "reimportSuccess": "레시피를 다시 가져왔습니다",
             "reimportBulkComplete": "다시 가져오기 완료: {completed}개 성공, {failed}개 실패 (총 {total}개)",
@@ -2032,7 +2111,6 @@
             "presetNameTooLong": "프리셋 이름은 {max}자 이하여야 합니다",
             "presetNameInvalidChars": "프리셋 이름에 유효하지 않은 문자가 포함되어 있습니다",
             "presetNameExists": "동일한 이름의 프리셋이 이미 존재합니다",
-            "maxPresetsReached": "최대 {max}개의 프리셋만 허용됩니다. 더 추가하려면 기존 것을 삭제하세요.",
             "presetNotFound": "프리셋을 찾을 수 없습니다",
             "invalidPreset": "잘못된 프리셋 데이터입니다",
             "deletePresetFailed": "프리셋 삭제에 실패했습니다",
@@ -2060,6 +2138,14 @@
             "updateSuccess": "트리거 단어가 성공적으로 업데이트되었습니다",
             "updateFailed": "트리거 단어 업데이트에 실패했습니다",
             "copyFailed": "복사 실패"
+        },
+        "undo": {
+            "action": "실행 취소",
+            "deleted": "{name} 삭제됨",
+            "deletedBulk": "{count}개 항목 삭제됨",
+            "expired": "실행 취소 기간이 만료되었습니다. 항목이 영구적으로 삭제되었습니다.",
+            "failed": "실행 취소 실패: {error}",
+            "restored": "항목이 복원되었습니다"
         },
         "virtual": {
             "loadFailed": "항목 로딩 실패",
@@ -2124,6 +2210,7 @@
             "fileRenameFailed": "파일 이름 변경 실패: {error}",
             "previewUpdated": "미리보기가 성공적으로 업데이트되었습니다",
             "previewUploadFailed": "미리보기 이미지 업로드 실패",
+            "previewDropInvalid": "지원되지 않는 파일 형식: {name}. 이미지 또는 MP4 동영상을 드롭하세요.",
             "refreshComplete": "{action} 완료",
             "refreshFailed": "{type} {action} 실패",
             "metadataRefreshed": "메타데이터가 성공적으로 새로고침되었습니다",
@@ -2250,10 +2337,5 @@
             "rebuildFailed": "캐시 재구축 실패: {error}",
             "retry": "다시 시도"
         }
-    },
-    "outputs": {
-        "title": "출력",
-        "metadataAvailable": "메타데이터 있음",
-        "metadataUnavailable": "메타데이터 없음"
     }
 }

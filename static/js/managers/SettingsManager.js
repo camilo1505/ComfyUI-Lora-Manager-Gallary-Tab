@@ -1017,6 +1017,9 @@ export class SettingsManager {
             displayDensitySelect.value = state.global.settings.display_density || 'default';
         }
 
+        // Set recipes layout setting (segmented control active state)
+        this.updateRecipesLayoutControls(state.global.settings.recipes_layout || 'grid');
+
         // Set card info display setting
         const cardInfoDisplaySelect = document.getElementById('cardInfoDisplay');
         if (cardInfoDisplaySelect) {
@@ -1056,6 +1059,12 @@ export class SettingsManager {
         const hideEarlyAccessUpdatesCheckbox = document.getElementById('hideEarlyAccessUpdates');
         if (hideEarlyAccessUpdatesCheckbox) {
             hideEarlyAccessUpdatesCheckbox.checked = state.global.settings.hide_early_access_updates || false;
+        }
+
+        // Set hide paid updates setting
+        const hidePaidUpdatesCheckbox = document.getElementById('hidePaidUpdates');
+        if (hidePaidUpdatesCheckbox) {
+            hidePaidUpdatesCheckbox.checked = state.global.settings.hide_paid_updates || false;
         }
 
         const skipPreviouslyDownloadedModelVersionsCheckbox = document.getElementById('skipPreviouslyDownloadedModelVersions');
@@ -1517,11 +1526,20 @@ export class SettingsManager {
         return data;
     }
 
-    async loadLoraRoots() {
-        try {
-            const defaultLoraRootSelect = document.getElementById('defaultLoraRoot');
-            if (!defaultLoraRootSelect) return;
+    showNoRootsPlaceholder(select) {
+        select.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = translate('settings.folderSettings.noDefault', {}, 'No Default');
+        select.appendChild(option);
+        select.disabled = true;
+    }
 
+    async loadLoraRoots() {
+        const defaultLoraRootSelect = document.getElementById('defaultLoraRoot');
+        if (!defaultLoraRootSelect) return;
+
+        try {
             // Fetch lora roots
             const response = await fetch('/api/lm/loras/roots');
             if (!response.ok) {
@@ -1530,10 +1548,12 @@ export class SettingsManager {
 
             const data = await response.json();
             if (!data.roots || data.roots.length === 0) {
-                throw new Error('No LoRA roots found');
+                this.showNoRootsPlaceholder(defaultLoraRootSelect);
+                return;
             }
 
             defaultLoraRootSelect.innerHTML = '';
+            defaultLoraRootSelect.disabled = false;
 
             // Add options for each root
             data.roots.forEach(root => {
@@ -1548,15 +1568,16 @@ export class SettingsManager {
 
         } catch (error) {
             console.error('Error loading LoRA roots:', error);
+            this.showNoRootsPlaceholder(defaultLoraRootSelect);
             showToast('toast.settings.loraRootsFailed', { message: error.message }, 'error');
         }
     }
 
     async loadCheckpointRoots() {
-        try {
-            const defaultCheckpointRootSelect = document.getElementById('defaultCheckpointRoot');
-            if (!defaultCheckpointRootSelect) return;
+        const defaultCheckpointRootSelect = document.getElementById('defaultCheckpointRoot');
+        if (!defaultCheckpointRootSelect) return;
 
+        try {
             // Fetch checkpoint roots (checkpoint paths only, not unet)
             const response = await fetch('/api/lm/checkpoints/checkpoints_roots');
             if (!response.ok) {
@@ -1565,10 +1586,12 @@ export class SettingsManager {
 
             const data = await response.json();
             if (!data.roots || data.roots.length === 0) {
-                throw new Error('No checkpoint roots found');
+                this.showNoRootsPlaceholder(defaultCheckpointRootSelect);
+                return;
             }
 
             defaultCheckpointRootSelect.innerHTML = '';
+            defaultCheckpointRootSelect.disabled = false;
 
             // Add options for each root
             data.roots.forEach(root => {
@@ -1583,15 +1606,16 @@ export class SettingsManager {
 
         } catch (error) {
             console.error('Error loading checkpoint roots:', error);
+            this.showNoRootsPlaceholder(defaultCheckpointRootSelect);
             showToast('toast.settings.checkpointRootsFailed', { message: error.message }, 'error');
         }
     }
 
     async loadUnetRoots() {
-        try {
-            const defaultUnetRootSelect = document.getElementById('defaultUnetRoot');
-            if (!defaultUnetRootSelect) return;
+        const defaultUnetRootSelect = document.getElementById('defaultUnetRoot');
+        if (!defaultUnetRootSelect) return;
 
+        try {
             // Fetch unet roots (diffusion model paths only)
             const response = await fetch('/api/lm/checkpoints/unet_roots');
             if (!response.ok) {
@@ -1600,10 +1624,12 @@ export class SettingsManager {
 
             const data = await response.json();
             if (!data.roots || data.roots.length === 0) {
-                throw new Error('No diffusion model roots found');
+                this.showNoRootsPlaceholder(defaultUnetRootSelect);
+                return;
             }
 
             defaultUnetRootSelect.innerHTML = '';
+            defaultUnetRootSelect.disabled = false;
 
             // Add options for each root
             data.roots.forEach(root => {
@@ -1618,15 +1644,16 @@ export class SettingsManager {
 
         } catch (error) {
             console.error('Error loading diffusion model roots:', error);
+            this.showNoRootsPlaceholder(defaultUnetRootSelect);
             showToast('toast.settings.unetRootsFailed', { message: error.message }, 'error');
         }
     }
 
     async loadEmbeddingRoots() {
-        try {
-            const defaultEmbeddingRootSelect = document.getElementById('defaultEmbeddingRoot');
-            if (!defaultEmbeddingRootSelect) return;
+        const defaultEmbeddingRootSelect = document.getElementById('defaultEmbeddingRoot');
+        if (!defaultEmbeddingRootSelect) return;
 
+        try {
             // Fetch embedding roots
             const response = await fetch('/api/lm/embeddings/roots');
             if (!response.ok) {
@@ -1635,10 +1662,12 @@ export class SettingsManager {
 
             const data = await response.json();
             if (!data.roots || data.roots.length === 0) {
-                throw new Error('No embedding roots found');
+                this.showNoRootsPlaceholder(defaultEmbeddingRootSelect);
+                return;
             }
 
             defaultEmbeddingRootSelect.innerHTML = '';
+            defaultEmbeddingRootSelect.disabled = false;
 
             // Add options for each root
             data.roots.forEach(root => {
@@ -1653,6 +1682,7 @@ export class SettingsManager {
 
         } catch (error) {
             console.error('Error loading embedding roots:', error);
+            this.showNoRootsPlaceholder(defaultEmbeddingRootSelect);
             showToast('toast.settings.embeddingRootsFailed', { message: error.message }, 'error');
         }
     }
@@ -2261,6 +2291,12 @@ export class SettingsManager {
             : element.value;
 
         try {
+            // Recipes layout has its own shared entry point used by both the
+            // settings modal segmented control and the recipes page toolbar toggle
+            if (settingKey === 'recipes_layout') {
+                return this.saveRecipesLayout(element.value);
+            }
+
             // Update frontend state with mapped keys
             await this.saveSetting(settingKey, value);
 
@@ -2292,6 +2328,47 @@ export class SettingsManager {
         } catch (error) {
             showToast('toast.settings.settingSaveFailed', { message: error.message }, 'error');
         }
+    }
+
+    /**
+     * Save the recipes page layout (grid | masonry) and rebuild the scroller.
+     * Shared entry point for the settings modal segmented control and the
+     * recipes page toolbar toggle; both stay in sync via
+     * updateRecipesLayoutControls().
+     */
+    async saveRecipesLayout(value) {
+        if (value !== 'grid' && value !== 'masonry') {
+            return;
+        }
+
+        // Update frontend state with mapped keys
+        await this.saveSetting('recipes_layout', value);
+
+        // Apply frontend settings immediately
+        this.applyFrontendSettings();
+
+        // Dispatch layout change event; the scroller instance is about to be rebuilt,
+        // so calculateLayout() must NOT run on the old instance here
+        window.dispatchEvent(new CustomEvent('lm:recipes-layout-changed'));
+
+        this.updateRecipesLayoutControls(value);
+    }
+
+    /**
+     * Sync the active state of every recipes layout control
+     * (settings modal segmented control and recipes page toolbar toggle).
+     */
+    updateRecipesLayoutControls(value) {
+        document.querySelectorAll('[data-recipes-layout]').forEach((control) => {
+            const active = control.dataset.recipesLayout === value;
+            control.classList.toggle('active', active);
+            if (control.hasAttribute('aria-pressed')) {
+                control.setAttribute('aria-pressed', String(active));
+            }
+            if (control.hasAttribute('aria-checked')) {
+                control.setAttribute('aria-checked', String(active));
+            }
+        });
     }
 
     async saveRangeSetting(elementId, displayId, settingKey) {
