@@ -32,6 +32,7 @@ MISC_ROUTE_DEFINITIONS: tuple[RouteDefinition, ...] = (
     RouteDefinition("GET", "/api/lm/settings/libraries", "get_settings_libraries"),
     RouteDefinition("POST", "/api/lm/settings/libraries/activate", "activate_library"),
     RouteDefinition("GET", "/api/lm/health-check", "health_check"),
+    RouteDefinition("GET", "/api/lm/init-status", "get_init_status"),
     RouteDefinition("GET", "/api/lm/supporters", "get_supporters"),
     RouteDefinition("GET", "/api/lm/wildcards/search", "search_wildcards"),
     RouteDefinition("POST", "/api/lm/wildcards/open-location", "open_wildcards_location"),
@@ -101,6 +102,10 @@ MISC_ROUTE_DEFINITIONS: tuple[RouteDefinition, ...] = (
     # Hugging Face model endpoints
     RouteDefinition(
         "GET", "/api/lm/hf-repo-files", "get_hf_repo_files"
+    ),
+    # Download target routing decision (checkpoint vs diffusion model roots)
+    RouteDefinition(
+        "POST", "/api/lm/download/routing", "get_download_routing"
     ),
     RouteDefinition(
         "POST", "/api/lm/download-hf-model", "download_hf_model"

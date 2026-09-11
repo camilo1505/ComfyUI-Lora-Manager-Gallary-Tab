@@ -904,6 +904,9 @@ export class SettingsManager {
         // Helper to update model Combobox presets from catalog / Ollama API
         const llmModelInput = document.getElementById('llmModel');
         this._llmModelCombobox = null;
+        if (llmModelInput) {
+            llmModelInput.value = state.global.settings.llm_model || '';
+        }
         if (llmModelInput && typeof Combobox !== 'undefined') {
             const currentProvider = llmProviderSelect ? llmProviderSelect.value : 'openai';
             const fallbackModels = currentProvider === 'ollama' ? [] : (this._providerModels[currentProvider] || []);
@@ -1042,6 +1045,12 @@ export class SettingsManager {
         const groupByModelCheckbox = document.getElementById('groupByModel');
         if (groupByModelCheckbox) {
             groupByModelCheckbox.checked = !!state.global.settings.group_by_model;
+        }
+
+        // Set sticky controls
+        const stickyControlsCheckbox = document.getElementById('stickyControls');
+        if (stickyControlsCheckbox) {
+            stickyControlsCheckbox.checked = !!state.global.settings.sticky_controls;
         }
 
         // Set model name display setting
@@ -3392,6 +3401,10 @@ export class SettingsManager {
         // Apply group-by-model mode
         const groupByModel = !!state.global.settings.group_by_model;
         document.body.classList.toggle('group-by-model', groupByModel);
+
+        // Apply sticky controls mode (keeps the action bar visible while scrolling)
+        const stickyControls = !!state.global.settings.sticky_controls;
+        document.body.classList.toggle('sticky-controls', stickyControls);
 
     }
 }

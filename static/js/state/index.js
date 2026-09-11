@@ -59,6 +59,7 @@ const DEFAULT_SETTINGS_BASE = Object.freeze({
     strip_lora_on_copy: false,
     use_new_license_icons: true,
     group_by_model: false,
+    sticky_controls: false,
     llm_provider: 'openai',
     llm_api_key: '',
     llm_api_base: '',
@@ -103,6 +104,7 @@ export const state = {
                 modelname: true,
                 tags: false,
                 creator: false,
+                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.LORA}_recursiveSearch`, true),
             },
             filters: {
@@ -147,6 +149,7 @@ export const state = {
                 tags: {},
                 license: {},
                 modelTypes: [],
+                loraAvailability: [],
                 search: ''
             },
             pageSize: 20,
@@ -168,6 +171,7 @@ export const state = {
                 filename: true,
                 modelname: true,
                 creator: false,
+                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.CHECKPOINT}_recursiveSearch`, true),
             },
             filters: {
@@ -207,6 +211,7 @@ export const state = {
                 modelname: true,
                 tags: false,
                 creator: false,
+                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.EMBEDDING}_recursiveSearch`, true),
             },
             filters: {

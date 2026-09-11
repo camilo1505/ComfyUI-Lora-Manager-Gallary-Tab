@@ -6,7 +6,7 @@ import { bulkManager } from '../../managers/BulkManager.js';
 import { MODEL_CONFIG } from '../../api/apiConfig.js';
 import { translate } from '../../utils/i18nHelpers.js';
 import { getNsfwLevelSelector } from '../shared/NsfwLevelSelector.js';
-import { extractCivitaiModelUrlParts } from '../../utils/civitaiUtils.js';
+import { classifyModelRelinkUrl } from '../../utils/civitaiUtils.js';
 
 // Mixin with shared functionality for LoraContextMenu and CheckpointContextMenu
 export const ModelContextMenuMixin = {
@@ -106,6 +106,17 @@ export const ModelContextMenuMixin = {
     },
 
     // Civitai re-linking methods
+    getModelTypePrefix() {
+        // Map the mixin model type to its API route prefix; the relink route
+        // exists for all model types via COMMON_ROUTE_DEFINITIONS.
+        const prefixMap = {
+            lora: 'loras',
+            checkpoint: 'checkpoints',
+            embedding: 'embeddings'
+        };
+        return prefixMap[this.modelType] || 'loras';
+    },
+
     showRelinkCivitaiModal() {
         const filePath = this.currentCard.dataset.filepath;
         if (!filePath) return;
@@ -123,43 +134,55 @@ export const ModelContextMenuMixin = {
         // Create new bound handler
         this._boundRelinkHandler = async () => {
             const url = urlInput.value.trim();
-            const { modelId, modelVersionId } = this.extractModelVersionId(url);
-            
-            if (!modelId) {
-                errorDiv.textContent = 'Invalid URL format. Must include model ID.';
+            const { source, modelId, modelVersionId } = classifyModelRelinkUrl(url);
+
+            if (!source || !modelId) {
+                errorDiv.textContent = 'Invalid URL format. Expected: https://civitai.com/models/{modelId} or https://civarchive.com/models/{modelId}';
                 return;
             }
-            
+
             errorDiv.textContent = '';
             modalManager.closeModal('relinkCivitaiModal');
-            
+
             try {
-                state.loadingManager.showSimpleLoading('Re-linking to Civitai...');
-                
-                const endpoint = this.modelType === 'checkpoint' ? 
-                    '/api/lm/checkpoints/relink-civitai' : 
-                    '/api/lm/loras/relink-civitai';
-                
+                const isCivArchive = source === 'civarchive';
+                state.loadingManager.showSimpleLoading(
+                    isCivArchive ? 'Re-linking via CivitArchive...' : 'Re-linking to Civitai...'
+                );
+
+                const endpoint = `/api/lm/${this.getModelTypePrefix()}/relink-civitai`;
+
+                const payload = {
+                    file_path: filePath,
+                    model_id: modelId,
+                    model_version_id: modelVersionId
+                };
+                // Omitted source keeps backend default-provider behaviour; only
+                // civarchive pins the provider explicitly.
+                if (isCivArchive) {
+                    payload.source = source;
+                }
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        file_path: filePath,
-                        model_id: modelId,
-                        model_version_id: modelVersionId
-                    })
+                    body: JSON.stringify(payload)
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to re-link model: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    showToast('toast.contextMenu.relinkSuccess', {}, 'success');
+                    showToast(
+                        isCivArchive ? 'toast.contextMenu.linkCivArchSuccess' : 'toast.contextMenu.relinkSuccess',
+                        {},
+                        'success'
+                    );
                     // Reload the current view to show updated data
                     await this.resetAndReload();
                 } else {
@@ -255,8 +278,77 @@ export const ModelContextMenuMixin = {
         setTimeout(() => urlInput.focus(), 50);
     },
 
-    extractModelVersionId(url) {
-        return extractCivitaiModelUrlParts(url);
+    // HF metadata enrichment (AI agent) methods
+    updateEnrichMenuItem(card) {
+        const enrichItem = this.menu?.querySelector('[data-action="enrich-hf-llm"]');
+        if (!enrichItem) return;
+        const hasHfUrl = !!card.dataset.hf_url;
+        enrichItem.classList.toggle('disabled', !hasHfUrl);
+        enrichItem.title = hasHfUrl
+            ? ''
+            : 'Link this model to a HuggingFace repo first (Link Model → Link to HuggingFace)';
+    },
+
+    async enrichWithAgent(filePath) {
+        const { agentManager } = await import('../../managers/AgentManager.js');
+
+        const configured = await agentManager.isLlmConfigured();
+        if (!configured) {
+            showToast('toast.agent.llmNotConfigured', {}, 'warning');
+            return;
+        }
+
+        agentManager.connect();
+
+        const progressUI = state.loadingManager.showEnhancedProgress(
+            'Enriching metadata with AI...'
+        );
+
+        function cleanupCallbacks() {
+            const pIdx = agentManager.progressCallbacks.indexOf(onProgress);
+            if (pIdx >= 0) agentManager.progressCallbacks.splice(pIdx, 1);
+            const cIdx = agentManager.completeCallbacks.indexOf(onComplete);
+            if (cIdx >= 0) agentManager.completeCallbacks.splice(cIdx, 1);
+            const eIdx = agentManager.errorCallbacks.indexOf(onError);
+            if (eIdx >= 0) agentManager.errorCallbacks.splice(eIdx, 1);
+        }
+
+        const onProgress = (data) => {
+            if (data.status === 'processing' && data.current_path && data.updated_data && Object.keys(data.updated_data).length > 0) {
+                if (state.virtualScroller?.updateSingleItem) {
+                    state.virtualScroller.updateSingleItem(data.current_path, data.updated_data);
+                }
+                const pct = data.total > 0 ? Math.floor((data.processed / data.total) * 100) : 0;
+                const name = data.current_path.split('/').pop();
+                progressUI.updateProgress(pct, name, `Processing ${name}`);
+            }
+        };
+        agentManager.onProgress(onProgress);
+
+        const onComplete = (data) => {
+            cleanupCallbacks();
+
+            if (data.status === 'completed') {
+                progressUI.complete(data.summary || 'Enrich complete');
+                showToast('toast.agent.enrichComplete', { summary: data.summary || 'Done' }, 'success');
+            }
+        };
+        agentManager.onComplete(onComplete);
+
+        const onError = (data) => {
+            cleanupCallbacks();
+            state.loadingManager.hide();
+            showToast('toast.agent.enrichFailed', { error: data.error || 'Unknown error' }, 'error');
+        };
+        agentManager.onError(onError);
+
+        try {
+            await agentManager.executeSkill('enrich_hf_metadata', [filePath]);
+        } catch (error) {
+            cleanupCallbacks();
+            state.loadingManager.hide();
+            showToast('toast.agent.enrichFailed', { error: error.message }, 'error');
+        }
     },
 
     parseModelId(value) {
@@ -368,6 +460,9 @@ export const ModelContextMenuMixin = {
                 return true;
             case 'link-hf':
                 this.showLinkHfModal();
+                return true;
+            case 'enrich-hf-llm':
+                this.enrichWithAgent(this.currentCard.dataset.filepath);
                 return true;
             case 'set-nsfw':
                 this.showNSFWLevelSelector(null, null, this.currentCard);
