@@ -1,7 +1,7 @@
 import { api } from "../../scripts/api.js";
 import { app } from "../../scripts/app.js";
 import { createMenuItem, createDropIndicator } from "./loras_widget_components.js";
-import { parseLoraValue, formatLoraValue, syncClipStrengthIfCollapsed, saveRecipeDirectly, copyToClipboard, showToast, moveLoraByDirection, getDropTargetIndex } from "./loras_widget_utils.js";
+import { parseLoraValue, formatLoraValue, syncClipStrengthIfCollapsed, saveRecipeDirectly, copyToClipboard, showToast, moveLoraByDirection, getDropTargetIndex, getLoraStrengthRange, applyStrengthRangeCue } from "./loras_widget_utils.js";
 
 // Function to handle strength adjustment via dragging
 export function handleStrengthDrag(name, initialStrength, initialX, event, widget, isClipStrength = false, updateWidget = true) {
@@ -194,6 +194,7 @@ export function initDrag(
     const strengthInput = currentDragElement.querySelector('.lm-lora-strength-input');
     if (strengthInput && typeof newStrength === 'number') {
       strengthInput.value = newStrength.toFixed(2);
+      applyStrengthRangeCue(strengthInput, newStrength, getLoraStrengthRange(name));
     }
     
     // Prevent showing the preview tooltip during drag
@@ -334,6 +335,10 @@ export function initHeaderDrag(headerEl, widget, renderFunction) {
     strengthInputs.forEach((input, index) => {
       if (lorasData[index]) {
         input.value = lorasData[index].strength.toFixed(2);
+      }
+      const entryEl = input.closest('[data-lora-name]');
+      if (entryEl) {
+        applyStrengthRangeCue(input, input.value, getLoraStrengthRange(entryEl.dataset.loraName));
       }
     });
   });
@@ -868,6 +873,19 @@ export function createContextMenu(x, y, loraName, widget, previewTooltip, render
     }
   );
 
+  // Save recipe with the current graph embedded. Kept opt-in rather than
+  // folded into "Save Recipe": the workflow dwarfs every other metadata field
+  // and can carry sensitive widget values, so it stays an explicit choice.
+  const saveWithWorkflowOption = createMenuItem(
+    'Save Recipe with Workflow',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>',
+    () => {
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+      saveRecipeDirectly({ embedWorkflow: true });
+    }
+  );
+
   // Move Up option with arrow up icon
   const moveUpOption = createMenuItem(
     'Move Up',
@@ -977,6 +995,7 @@ export function createContextMenu(x, y, loraName, widget, previewTooltip, render
   menu.appendChild(copyTriggerWordsOption);
   menu.appendChild(separator2);
   menu.appendChild(saveOption);
+  menu.appendChild(saveWithWorkflowOption);
   
   document.body.appendChild(menu);
 

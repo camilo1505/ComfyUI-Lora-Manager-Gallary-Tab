@@ -116,7 +116,7 @@ export class AppCore {
     initializePageFeatures() {
         const pageType = this.getPageType();
         
-        if (['loras', 'recipes', 'checkpoints', 'embeddings', 'outputs'].includes(pageType)) {
+        if (['loras', 'recipes', 'checkpoints', 'embeddings', 'outputs', 'other'].includes(pageType)) {
             this.initializeContextMenus(pageType);
             initializeInfiniteScroll(pageType);
         }

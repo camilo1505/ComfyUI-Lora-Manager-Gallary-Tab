@@ -190,7 +190,7 @@ The system runs in two modes:
 
 ### Model Types & Routes
 
-- API endpoints follow `/loras/*`, `/checkpoints/*`, `/embeddings/*` patterns
+- API endpoints follow `/loras/*`, `/checkpoints/*`, `/embeddings/*`, `/other/*` patterns
 - Route registrars organize endpoints by domain: `ModelRouteRegistrar`, `RecipeRouteRegistrar`, etc.
 - Request handlers in `py/routes/handlers/` implement route logic
 - All routes use aiohttp, return `web.json_response` or `web.Response`
@@ -214,6 +214,17 @@ The system runs in two modes:
 
 - `py/config.py` manages folder paths for models and handles symlink mappings
 - Auto-saves paths to `settings.json` in ComfyUI mode
+- `settings.json.example` is intentionally minimal (see Important Notes); all
+  other defaults live in `DEFAULT_SETTINGS` (`py/services/settings_manager.py`)
+- **`folder_paths` vs `extra_folder_paths` — different purposes, do not conflate:**
+  - `folder_paths` (primary model roots): in ComfyUI plugin mode these come
+    from the ComfyUI host; in standalone mode they are the ONLY source of
+    model library paths and are currently edited by hand in `settings.json`.
+  - `extra_folder_paths` is a **ComfyUI-plugin-mode feature**: paths visible
+    ONLY to LoRA Manager, not to ComfyUI. Its motivation is that a very large
+    model library slows ComfyUI itself down, while LoRA Manager handles large
+    libraries without performance issues — so users keep ComfyUI's library
+    small and add the bulk via `extra_folder_paths`.
 
 ### Frontend UI Architecture
 
@@ -276,6 +287,24 @@ If a cross-layer issue ever needs a live server, the sandboxed helpers live in
 ## Important Notes
 
 - ALWAYS use English for comments (per copilot-instructions.md)
+- **`.civitai.info` files are NOT LoRA Manager sidecars.** They are written by
+  third-party apps; LoRA Manager treats them as read-only and only consumes
+  them during migration/import. Never write, modify, or delete them, and never
+  propose doing so as a fix — LoRA Manager's own metadata lives in the
+  `.metadata.json` sidecar it owns.
+- **Sidecar/preview path derivation must go through `py/utils/sidecar_paths.py`**
+  helpers (never inline `splitext + ".metadata.json"`): the centralized storage
+  mode (`sidecar_storage_mode` / `sidecar_storage_path` settings) relocates
+  `.metadata.json` files and preview images under a mirror tree, so any
+  hand-built path is wrong in that mode. `.civitai.info` stays co-located with
+  the model file in both modes. The new settings keys live only in
+  `DEFAULT_SETTINGS` — `settings.json.example` stays minimal (see below).
+- **`settings.json.example` must stay minimal**: only `use_portable_settings`,
+  `civitai_api_key`, and the four core `folder_paths` keys (`loras`,
+  `checkpoints`, `unet`, `embeddings`). Do NOT add optional/default keys
+  (model-category folders, `default_*_root`, `auto_organize_exclusions`, etc.)
+  to this file unless the user explicitly asks for it. Defaults belong in
+  `DEFAULT_SETTINGS` in `py/services/settings_manager.py`.
 - Run `python scripts/sync_translation_keys.py` after adding UI strings to `locales/en.json`
 - Symlinks require normalized paths.
   **Business paths vs real paths**: All stored paths and operation routing use the

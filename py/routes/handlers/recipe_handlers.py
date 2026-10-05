@@ -9,7 +9,6 @@ import re
 import asyncio
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Protocol, Tuple
 
 from aiohttp import web
@@ -34,8 +33,10 @@ from ...utils.civitai_utils import (
     rewrite_preview_url,
 )
 from ...utils.constants import NSFW_LEVELS
+from ...utils.directory_browser import WINDOWS_DRIVES_TOKEN, browse_directory
 from ...utils.exif_utils import ExifUtils
 from ...utils.recipe_open_stats import RecipeOpenStats
+from ...utils.url_utils import relative_root_prefix
 from ...recipes.merger import GenParamsMerger
 from ...recipes.enrichment import RecipeEnricher
 from ...services.websocket_manager import ws_manager as default_ws_manager
@@ -215,6 +216,7 @@ class RecipePageView:
                     settings=self._settings,
                     request=request,
                     t=self._server_i18n.get_translation,
+                    rel_prefix=relative_root_prefix(request.path),
                 )
             except Exception as cache_error:  # pragma: no cover - logging path
                 self._logger.error("Error loading recipe cache data: %s", cache_error)
@@ -223,6 +225,7 @@ class RecipePageView:
                     settings=self._settings,
                     request=request,
                     t=self._server_i18n.get_translation,
+                    rel_prefix=relative_root_prefix(request.path),
                 )
             return web.Response(text=rendered, content_type="text/html")
         except Exception as exc:  # pragma: no cover - logging path
@@ -1281,6 +1284,21 @@ class RecipeManagementHandler:
             _original_image_url,
         ) = await self._download_remote_media(image_url)
 
+        # CivitAI's optimized rendition is re-encoded and metadata-free, so an
+        # embedded ComfyUI workflow only exists in the original. Fetch it
+        # lazily: unlike the URL import path (which needs the original for
+        # metadata parsing anyway), this path would download it purely for the
+        # workflow, so it is skipped unless the API reports one.
+        original_workflow = None
+        if _original_image_url and self._meta_indicates_comfy_workflow(
+            civitai_meta_raw
+        ):
+            _raw_original, original_workflow = await self._fetch_original_media(
+                _original_image_url
+            )
+        if original_workflow:
+            metadata["workflow"] = original_workflow
+
         # Build a version-cached map of local model hashes to cache items so
         # CivitaiApiMetadataParser can skip CivitAI API calls for models that
         # exist on disk. Built once and shared by every parse pass below.
@@ -1803,6 +1821,10 @@ class RecipeManagementHandler:
             if recipe_scanner is None:
                 raise RuntimeError("Recipe scanner unavailable")
 
+            # Opt-in workflow embedding. The widget historically POSTs with no
+            # body at all, so a missing/empty body is not an error.
+            workflow = await self._read_optional_json_field(request, "workflow")
+
             analysis = await self._analysis_service.analyze_widget_metadata(
                 recipe_scanner=recipe_scanner
             )
@@ -1815,6 +1837,7 @@ class RecipeManagementHandler:
                 recipe_scanner=recipe_scanner,
                 metadata=metadata,
                 image_bytes=image_bytes,
+                workflow=workflow,
             )
             return web.json_response(result.payload, status=result.status)
         except RecipeValidationError as exc:
@@ -1878,6 +1901,24 @@ class RecipeManagementHandler:
         if not tag_text:
             return []
         return [tag.strip() for tag in tag_text.split(",") if tag.strip()]
+
+    async def _read_optional_json_field(
+        self, request: web.Request, field: str
+    ) -> Any:
+        """Read one field from an optional JSON request body.
+
+        Some callers (notably the widget's long-standing "Save Recipe" action)
+        POST with no body at all, and a stale cached extension may still do so
+        after a body is introduced. A missing, empty or malformed body is
+        therefore treated as "no value" rather than a request error.
+        """
+        if not request.can_read_body:
+            return None
+        try:
+            data = await request.json()
+        except Exception:
+            return None
+        return data.get(field) if isinstance(data, dict) else None
 
     async def _count_recipe_loras(
         self, recipe_scanner: Any, recipe_id: Optional[str]
@@ -2087,6 +2128,90 @@ class RecipeManagementHandler:
                 except FileNotFoundError:
                     pass
 
+    def _read_embedded_workflow(self, image_path: Optional[str]) -> Optional[str]:
+        """Return a ComfyUI workflow embedded in ``image_path``, if any.
+
+        ``ExifUtils.extract_image_metadata`` stops at the generation
+        parameters, so the UI-format workflow has to be read through the
+        structured metadata reader. Failures map to ``None``.
+        """
+        if not image_path or not os.path.exists(image_path):
+            return None
+        try:
+            metadata = ExifUtils._load_structured_metadata(image_path)
+        except Exception as exc:
+            self._logger.debug(
+                "Failed to read embedded workflow from %s: %s", image_path, exc
+            )
+            return None
+        workflow = metadata.get("workflow") if isinstance(metadata, dict) else None
+        return workflow if isinstance(workflow, str) and workflow else None
+
+    @staticmethod
+    def _meta_indicates_comfy_workflow(civitai_meta_raw: Any) -> bool:
+        """Whether CivitAI reports an embedded ComfyUI workflow for an image.
+
+        ``meta.comfy`` is the payload CivitAI captured from the original image,
+        so its presence is the signal that fetching the original is worth the
+        bandwidth when the caller does not already need it for metadata
+        parsing.
+        """
+        if not isinstance(civitai_meta_raw, dict):
+            return False
+        inner = civitai_meta_raw.get("meta")
+        if isinstance(inner, dict) and inner.get("comfy"):
+            return True
+        return bool(civitai_meta_raw.get("comfy"))
+
+    async def _fetch_original_media(
+        self, original_image_url: Optional[str]
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Download the original rendition and read its embedded media.
+
+        CivitAI's optimized renditions are re-encoded and carry no metadata, so
+        the original is the only source for embedded generation metadata and
+        for the UI-format ComfyUI workflow (the raw extractor's fallback chain
+        ends at ``workflow`` only when no prompt is present).
+
+        Returns ``(raw_metadata, workflow)``; either element is ``None`` when
+        unavailable. Failures never raise — imports keep working with the
+        optimized rendition when the original cannot be fetched.
+        """
+        if not original_image_url:
+            return None, None
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            temp_path = temp_file.name
+        try:
+            downloader = await self._downloader_factory()
+            success, _result = await downloader.download_file(
+                original_image_url, temp_path, use_auth=False
+            )
+            if not success:
+                self._logger.warning(
+                    "Failed to download original rendition: %s", original_image_url
+                )
+                return None, None
+
+            raw_metadata = await asyncio.to_thread(
+                ExifUtils.extract_image_metadata, temp_path
+            )
+            workflow = await asyncio.to_thread(
+                self._read_embedded_workflow, temp_path
+            )
+            return raw_metadata, workflow
+        except Exception as exc:
+            self._logger.warning(
+                "Failed to read original rendition %s: %s", original_image_url, exc
+            )
+            return None, None
+        finally:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+
     def _safe_int(self, value: Any) -> int:
         try:
             return int(value)
@@ -2292,6 +2417,7 @@ class RecipeManagementHandler:
                 "Failed to extract embedded metadata: %s", exc
             )
 
+        original_workflow: Optional[str] = None
         if not parsed_embedded and original_image_url:
             self._logger.debug(
                 "Optimized image has no embedded metadata, "
@@ -2299,48 +2425,32 @@ class RecipeManagementHandler:
                 original_image_url,
             )
             try:
-                downloader = await self._downloader_factory()
-                with tempfile.NamedTemporaryFile(
-                    suffix=".png", delete=False
-                ) as tmp:
-                    orig_tmp_path = tmp.name
-                try:
-                    success, _ = await downloader.download_file(
-                        original_image_url, orig_tmp_path, use_auth=False
-                    )
-                    if success:
-                        raw_orig = await asyncio.to_thread(
-                            ExifUtils.extract_image_metadata, orig_tmp_path
+                raw_orig, original_workflow = await self._fetch_original_media(
+                    original_image_url
+                )
+                diagnostics["exif_present"] = bool(raw_orig) or bool(
+                    diagnostics.get("exif_present")
+                )
+                if raw_orig:
+                    parser = (
+                        self._analysis_service._recipe_parser_factory.create_parser(
+                            raw_orig
                         )
-                        diagnostics["exif_present"] = bool(raw_orig)
-                        if raw_orig:
-                            parser = (
-                                self._analysis_service._recipe_parser_factory.create_parser(
-                                    raw_orig
-                                )
+                    )
+                    if parser:
+                        diagnostics["exif_parser"] = parser.__class__.__name__
+                        if isinstance(parser, CivitaiApiMetadataParser):
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_orig,
+                                recipe_scanner=recipe_scanner,
+                                local_cache=local_cache,
                             )
-                            if parser:
-                                diagnostics["exif_parser"] = parser.__class__.__name__
-                                if isinstance(parser, CivitaiApiMetadataParser):
-                                    parsed_embedded = await parser.parse_metadata(
-                                        raw_orig,
-                                        recipe_scanner=recipe_scanner,
-                                        local_cache=local_cache,
-                                    )
-                                else:
-                                    parsed_embedded = await parser.parse_metadata(
-                                        raw_orig, recipe_scanner=recipe_scanner
-                                    )
-                                if (
-                                    parsed_embedded
-                                    and "gen_params" in parsed_embedded
-                                ):
-                                    embedded_gen_params = parsed_embedded[
-                                        "gen_params"
-                                    ]
-                finally:
-                    if os.path.exists(orig_tmp_path):
-                        os.unlink(orig_tmp_path)
+                        else:
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_orig, recipe_scanner=recipe_scanner
+                            )
+                        if parsed_embedded and "gen_params" in parsed_embedded:
+                            embedded_gen_params = parsed_embedded["gen_params"]
             except Exception as exc:
                 self._logger.warning(
                     "Failed to extract metadata from original image: %s", exc
@@ -2388,6 +2498,8 @@ class RecipeManagementHandler:
             "gen_params": embedded_gen_params or {},
             "source_path": image_url,
         }
+        if original_workflow:
+            metadata["workflow"] = original_workflow
 
         # Extract preview_nsfw_level from the CivitAI API response
         # (injected into civitai_meta_raw by _download_remote_media).
@@ -3124,11 +3236,10 @@ class RecipeWorkflowHandler:
 class BatchImportHandler:
     """Handle batch import operations for recipes."""
 
-    # Virtual path token for the Windows drive list. Browsing up from a drive
-    # root (e.g. C:\) lands here so users can switch drives without typing a
-    # path. Only meaningful on Windows; elsewhere it falls through to normal
-    # path handling and fails the existence check.
-    WINDOWS_DRIVES_TOKEN = "__drives__"
+    # Virtual path token for the Windows drive list. Kept as a class
+    # attribute for backwards compatibility; the canonical definition lives
+    # in py/utils/directory_browser.py.
+    WINDOWS_DRIVES_TOKEN = WINDOWS_DRIVES_TOKEN
 
     def __init__(
         self,
@@ -3301,131 +3412,8 @@ class BatchImportHandler:
         """Browse a directory and return its contents (subdirectories and files)."""
         try:
             data = await request.json()
-            directory_path = data.get("path", "")
-
-            if os.name == "nt" and directory_path == self.WINDOWS_DRIVES_TOKEN:
-                return self._windows_drives_response()
-
-            # Default to the user's home directory. The frontend previously
-            # sent "/" as the initial path, which is POSIX-only: on Windows it
-            # resolves to the current drive root and then fails the access
-            # check below.
-            if not directory_path:
-                path = Path.home()
-            else:
-                path = Path(directory_path).expanduser().resolve()
-
-            # Access check: browsing intentionally covers the whole server
-            # filesystem (the server operator browses their own machine). On
-            # POSIX every absolute path is under "/", but Path("/") has no
-            # drive letter on Windows and can never anchor a drive-qualified
-            # path in relative_to(), so test for a drive there instead.
-            if os.name == "nt":
-                is_allowed = bool(path.drive)
-            else:
-                is_allowed = path.is_absolute()
-
-            if not is_allowed:
-                return web.json_response(
-                    {"success": False, "error": "Access denied to this directory"},
-                    status=403,
-                )
-
-            if not path.exists():
-                return web.json_response(
-                    {"success": False, "error": "Directory does not exist"},
-                    status=404,
-                )
-
-            if not path.is_dir():
-                return web.json_response(
-                    {"success": False, "error": "Path is not a directory"},
-                    status=400,
-                )
-
-            # List directory contents
-            directories = []
-            image_files = []
-
-            image_extensions = {
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".gif",
-                ".webp",
-                ".bmp",
-                ".tiff",
-                ".tif",
-            }
-
-            try:
-                for item in path.iterdir():
-                    try:
-                        if item.is_dir():
-                            # Skip hidden directories and common system folders
-                            if not item.name.startswith(".") and item.name not in [
-                                "__pycache__",
-                                "node_modules",
-                            ]:
-                                directories.append(
-                                    {
-                                        "name": item.name,
-                                        "path": str(item),
-                                        "is_parent": False,
-                                    }
-                                )
-                        elif item.is_file() and item.suffix.lower() in image_extensions:
-                            image_files.append(
-                                {
-                                    "name": item.name,
-                                    "path": str(item),
-                                    "size": item.stat().st_size,
-                                }
-                            )
-                    except (PermissionError, OSError):
-                        # Skip files/directories we can't access
-                        continue
-
-                # Sort directories and files alphabetically
-                directories.sort(key=lambda x: x["name"].lower())
-                image_files.sort(key=lambda x: x["name"].lower())
-
-                # Parent directory. A filesystem root is its own parent
-                # (parent == path): POSIX "/" gets no parent, while a Windows
-                # drive root (C:\) links up to the virtual drive list so users
-                # can switch drives. The previous str(path) != str(path.root)
-                # check misfired on Windows, where a drive root's parent is
-                # itself, producing an infinite self-loop.
-                if path.parent == path:
-                    parent_path = (
-                        self.WINDOWS_DRIVES_TOKEN if os.name == "nt" else None
-                    )
-                else:
-                    parent_path = str(path.parent)
-
-                return web.json_response(
-                    {
-                        "success": True,
-                        "current_path": str(path),
-                        "parent_path": parent_path,
-                        "directories": directories,
-                        "image_files": image_files,
-                        "image_count": len(image_files),
-                        "directory_count": len(directories),
-                    }
-                )
-
-            except PermissionError:
-                return web.json_response(
-                    {"success": False, "error": "Permission denied"},
-                    status=403,
-                )
-            except OSError as exc:
-                return web.json_response(
-                    {"success": False, "error": f"Error reading directory: {str(exc)}"},
-                    status=500,
-                )
-
+            payload, status = browse_directory(data.get("path", ""))
+            return web.json_response(payload, status=status)
         except json.JSONDecodeError:
             return web.json_response(
                 {"success": False, "error": "Invalid JSON"},
@@ -3434,30 +3422,3 @@ class BatchImportHandler:
         except Exception as exc:
             self._logger.error("Error browsing directory: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
-
-    def _windows_drives_response(self) -> web.Response:
-        """List available drive letters as a virtual directory (Windows only)."""
-        try:
-            drives = os.listdrives()
-        except AttributeError:  # Python < 3.12
-            drives = [
-                f"{letter}:\\"
-                for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                if os.path.exists(f"{letter}:\\")
-            ]
-        directories = [
-            {"name": drive, "path": drive, "is_parent": False} for drive in drives
-        ]
-        return web.json_response(
-            {
-                "success": True,
-                # Empty current_path marks the virtual level; the frontend
-                # disables folder selection there.
-                "current_path": "",
-                "parent_path": None,
-                "directories": directories,
-                "image_files": [],
-                "image_count": 0,
-                "directory_count": len(directories),
-            }
-        )

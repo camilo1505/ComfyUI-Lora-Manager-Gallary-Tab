@@ -99,7 +99,7 @@ async function getDataFetcher(pageType) {
         };
     }
 
-    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints') {
+    if (pageType === 'loras' || pageType === 'embeddings' || pageType === 'checkpoints' || pageType === 'other') {
         return (page = 1, pageSize = 100) => getModelApiClient().fetchModelsPage(page, pageSize);
     } else if (pageType === 'recipes') {
         // Import the recipeApi module and use the fetchRecipesPage function

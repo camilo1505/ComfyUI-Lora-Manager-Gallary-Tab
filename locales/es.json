@@ -2,6 +2,9 @@
     "common": {
         "cancel": "Cancelar",
         "confirm": "Confirmar",
+        "reorder": {
+            "dragHandle": "Arrastra para reordenar"
+        },
         "actions": {
             "save": "Guardar",
             "cancel": "Cancelar",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "Ver en CivitAI",
             "notAvailableFromCivitai": "No disponible en CivitAI",
             "viewOnHuggingFace": "Ver en Hugging Face",
+            "viewOnSource": "Ver en {source}",
             "sendToWorkflow": "Enviar a ComfyUI (Clic: Añadir, Shift+Clic: Reemplazar)",
             "copyLoRASyntax": "Copiar sintaxis de LoRA",
             "checkpointNameCopied": "Nombre del checkpoint copiado",
@@ -149,6 +153,7 @@
             "copyCheckpointName": "Copiar nombre del checkpoint",
             "copyEmbeddingName": "Copiar nombre del embedding",
             "embeddingNameCopied": "Sintaxis de embedding copiada",
+            "modelNameCopied": "Nombre del modelo copiado",
             "sendCheckpointToWorkflow": "Enviar a ComfyUI",
             "sendEmbeddingToWorkflow": "Enviar a ComfyUI"
         },
@@ -196,7 +201,11 @@
             "loading": "Buscando actualizaciones de {type}...",
             "success": "Se encontraron {count} actualización(es) para {type}",
             "none": "Todos los {type} están actualizados",
-            "error": "Error al buscar actualizaciones de {type}: {message}"
+            "error": "Error al buscar actualizaciones de {type}: {message}",
+            "gateEvents": {
+                "becameFree": "{count} versión(es) que no tienes se han vuelto gratuitas",
+                "newGate": "{count} versión(es) ahora son de pago"
+            }
         },
         "cleanupExampleImages": {
             "label": "Limpiar carpetas de imágenes de ejemplo",
@@ -243,6 +252,7 @@
             "recipes": "Recetas",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
+            "other": "Otros",
             "statistics": "Estadísticas",
             "outputs": "Salidas"
         },
@@ -256,11 +266,11 @@
                 "modelname": "Nombre del modelo",
                 "tags": "Etiquetas",
                 "creator": "Creador",
-                "hash": "Hash",
                 "title": "Título de la receta",
                 "loraName": "Nombre de archivo LoRA",
                 "loraModel": "Nombre del modelo LoRA",
-                "prompt": "Prompt"
+                "prompt": "Prompt",
+                "hash": "Hash"
             }
         },
         "filter": {
@@ -330,6 +340,12 @@
         "civitaiApiKeyConfigured": "Configurado",
         "civitaiApiKeyNotConfigured": "No configurado",
         "civitaiApiKeySet": "Configurar",
+        "huggingfaceApiKey": "Token de acceso de Hugging Face",
+        "huggingfaceApiKeyPlaceholder": "Introduce tu token de acceso de Hugging Face",
+        "huggingfaceApiKeyHelp": "Necesario para descargar de repositorios de Hugging Face restringidos (gated) o privados. Crea un token de solo lectura en huggingface.co/settings/tokens y acepta primero los términos del repositorio en su página.",
+        "huggingfaceApiKeyConfigured": "Configurado",
+        "huggingfaceApiKeyNotConfigured": "No configurado",
+        "huggingfaceApiKeySet": "Configurar",
         "civitaiHost": {
             "label": "Host de CivitAI",
             "help": "Elige qué sitio de CivitAI se abre al usar los enlaces de \"View on CivitAI\".",
@@ -352,6 +368,14 @@
             "placeholder": "Déjalo vacío para usar aria2c desde el PATH"
         },
         "aria2HelpLink": "Aprende a configurar el backend de descarga aria2",
+        "unknownBaseModelRouting": {
+            "label": "Enrutamiento de modelos base desconocidos",
+            "help": "Decide a dónde van las descargas de Checkpoint cuando CivitAI informa de un modelo base que no es ni un Checkpoint conocido (SD 1.x/2.x/3.x, SDXL, Pony, Illustrious, NoobAI) ni un modelo de difusión conocido. Las nuevas arquitecturas de difusión aparecen con frecuencia, por lo que enrutarlas a modelos de difusión suele ser correcto.",
+            "options": {
+                "diffusionModel": "Modelos de difusión",
+                "checkpoint": "Checkpoints"
+            }
+        },
         "civitaiHostBanner": {
             "title": "Preferencia de host de CivitAI disponible",
             "content": "CivitAI ahora usa civitai.com para contenido SFW y civitai.red para contenido sin restricciones. Puedes cambiar en Ajustes qué sitio se abre por defecto.",
@@ -379,15 +403,19 @@
             "downloadPathTemplates": "Plantillas de rutas de descarga",
             "priorityTags": "Etiquetas prioritarias",
             "versionScope": "Indicadores de actualización",
+            "priceTracking": "Precios de descarga en Buzz",
             "exampleImages": "Imágenes de ejemplo",
             "autoOrganize": "Organización automática",
             "metadata": "Metadatos",
+            "sidecarStorage": "Almacenamiento de archivos sidecar",
             "proxySettings": "Configuración de proxy"
         },
         "nav": {
             "general": "General",
             "interface": "Interfaz",
-            "library": "Biblioteca"
+            "library": "Biblioteca",
+            "organization": "Organización",
+            "modelPaths": "Rutas de modelos"
         },
         "search": {
             "placeholder": "Buscar ajustes...",
@@ -514,6 +542,12 @@
                 "hover": "Mostrar al pasar el ratón"
             },
             "cardInfoDisplayHelp": "Elige cuándo mostrar información del modelo y botones de acción",
+            "showcaseLayout": "Diseño de imágenes de ejemplo",
+            "showcaseLayoutHelp": "Elige cómo se muestran las imágenes de ejemplo en el modal del modelo: una galería que las muestra de una en una o la clásica lista vertical.",
+            "showcaseLayoutOptions": {
+                "gallery": "Galería",
+                "vertical": "Lista vertical"
+            },
             "showVersionOnCard": "Mostrar versión en la tarjeta",
             "showVersionOnCardHelp": "Mostrar u ocultar el nombre de versión en las tarjetas de modelo",
             "modelCardFooterAction": "Acción del botón de tarjeta de modelo",
@@ -544,6 +578,25 @@
             "defaultUnetRootHelp": "Establecer el directorio raíz predeterminado de Diffusion Model (UNET) para descargas, importaciones y movimientos",
             "defaultEmbeddingRoot": "Raíz de embedding",
             "defaultEmbeddingRootHelp": "Establecer el directorio raíz predeterminado de embedding para descargas, importaciones y movimientos",
+            "defaultVaeRoot": "Raíz de VAE",
+            "defaultVaeRootHelp": "Establecer el directorio raíz predeterminado de VAE para descargas, importaciones y movimientos",
+            "defaultUpscalerRoot": "Raíz de Upscaler",
+            "defaultUpscalerRootHelp": "Establecer el directorio raíz predeterminado de Upscaler para descargas, importaciones y movimientos",
+            "defaultTextEncoderRoot": "Raíz de Text Encoder",
+            "defaultTextEncoderRootHelp": "Establecer el directorio raíz predeterminado de Text Encoder para descargas, importaciones y movimientos",
+            "defaultClipVisionRoot": "Raíz de CLIP Vision",
+            "defaultClipVisionRootHelp": "Establecer el directorio raíz predeterminado de CLIP Vision para descargas, importaciones y movimientos",
+            "defaultControlnetRoot": "Raíz de ControlNet",
+            "defaultControlnetRootHelp": "Establecer el directorio raíz predeterminado de ControlNet para descargas, importaciones y movimientos",
+            "enableOtherModels": "Gestión de otros modelos",
+            "enableOtherModelsHelp": "Cuando está desactivado, las carpetas VAE / Upscaler / Text Encoder / CLIP Vision / ControlNet no se escanean, la página Otros modelos permanece desactivada y estos tipos de modelos no se pueden descargar.",
+            "otherSubTypes": "Tipos de modelos gestionados",
+            "otherSubTypesHelp": "Elige qué categorías de otros modelos se escanean y se muestran en la página Otros modelos.",
+            "subTypeVae": "VAE",
+            "subTypeUpscaler": "Upscaler",
+            "subTypeTextEncoder": "Text Encoder",
+            "subTypeClipVision": "CLIP Vision",
+            "subTypeControlnet": "ControlNet",
             "recipesPath": "Ruta de almacenamiento de recetas",
             "recipesPathHelp": "Directorio personalizado opcional para las recetas guardadas. Déjalo vacío para usar la carpeta recipes del primer directorio raíz de LoRA.",
             "recipesPathPlaceholder": "/path/to/recipes",
@@ -568,6 +621,46 @@
                 "checkpointUnetOverlap": "No se puede usar la misma ruta para checkpoints y modelos de difusión: {paths}",
                 "checkpointUnetOverlapInline": "Esta ruta ya se usa para otro tipo de modelo. Use carpetas separadas para checkpoints y modelos de difusión."
             }
+        },
+        "modelPaths": {
+            "title": "Rutas de la biblioteca de modelos",
+            "description": "Carpetas raíz que LoRA Manager escanea en busca de tus modelos. Son las ubicaciones de modelos principales leídas de settings.json en modo independiente.",
+            "restartRequired": "Requiere reiniciar para que surta efecto",
+            "coreTypes": "Tipos de modelos principales",
+            "otherTypes": "Otros tipos de modelos",
+            "otherTypesDisabledHint": "No hay habilitado ningún otro tipo de modelo. Activa los tipos que necesites arriba para configurar sus carpetas.",
+            "saveSuccessRestart": "Rutas de la biblioteca de modelos actualizadas. Se requiere reinicio para aplicar los cambios.",
+            "pendingRestartNotice": "Cambios de rutas guardados. Reinicia LoRA Manager para que surtan efecto.",
+            "pendingRestartBannerTitle": "Se requiere reinicio para aplicar los cambios de rutas",
+            "pendingRestartBannerMessage": "Se actualizaron las rutas de la biblioteca de modelos. Reinicia el servidor de LoRA Manager para escanear las nuevas carpetas.",
+            "folderKeys": {
+                "loras": "Rutas de LoRA",
+                "checkpoints": "Rutas de Checkpoint",
+                "unet": "Rutas de modelo de difusión",
+                "embeddings": "Rutas de Embedding",
+                "vae": "Rutas de VAE",
+                "upscale_models": "Rutas de Upscaler",
+                "text_encoders": "Rutas de Text Encoder",
+                "clip": "Rutas de CLIP (heredadas)",
+                "clip_vision": "Rutas de CLIP Vision",
+                "controlnet": "Rutas de ControlNet"
+            }
+        },
+        "directoryPicker": {
+            "title": "Explorar carpetas",
+            "selectFolder": "Seleccionar esta carpeta",
+            "goUp": "Subir",
+            "pathPlaceholder": "Introducir ruta...",
+            "go": "Ir",
+            "emptyFolder": "No hay subcarpetas",
+            "loadError": "Error al cargar el directorio"
+        },
+        "pathValidation": {
+            "valid": "La ruta es válida",
+            "pathNotFound": "La ruta no existe",
+            "notADirectory": "No es un directorio",
+            "notReadable": "La ruta no es legible",
+            "notWritable": "La ruta no es escribible"
         },
         "priorityTags": {
             "title": "Etiquetas prioritarias",
@@ -625,6 +718,22 @@
                 "validTemplate": "Plantilla válida"
             }
         },
+        "filenameTemplates": {
+            "title": "Plantillas de nombres de archivo",
+            "help": "Configurar nombres de archivo de los modelos descargados por tipo de modelo. Dejar vacío para conservar los nombres de archivo originales al descargar; aplicar una plantilla vacía restaura los nombres de archivo originales registrados de los modelos renombrados previamente. El nombre de archivo original siempre se conserva en los metadatos del modelo.",
+            "availablePlaceholders": "Marcadores de posición disponibles:",
+            "templatePlaceholder": "Introduce plantilla de nombre de archivo (ej., {base_model}-{model_name}-{version_name})",
+            "applyButton": "Aplicar a la biblioteca ahora",
+            "applyHelp": "Renombra todos los archivos existentes de este tipo de modelo según la plantilla; con una plantilla vacía, restaura los nombres de archivo originales registrados. Advertencia: renombrar cambia la ruta relativa que ven los cargadores de ComfyUI, por lo que los workflows existentes que hagan referencia al nombre de archivo anterior pueden necesitar actualizarse. El nombre de archivo original se conserva en los metadatos de cada modelo.",
+            "confirmApply": "¿Renombrar todos los archivos existentes de este tipo de modelo según la plantilla de nombres de archivo? Esto cambia la ruta relativa que ven los cargadores de ComfyUI. El nombre de archivo original se conserva en los metadatos de cada modelo.",
+            "confirmRevert": "¿Restaurar los nombres de archivo originales registrados de todos los archivos renombrados previamente de este tipo de modelo? Esto cambia la ruta relativa que ven los cargadores de ComfyUI. Los archivos sin un nombre de archivo original registrado se omiten.",
+            "validation": {
+                "restoreOriginal": "Válido (la plantilla vacía restaura los nombres de archivo originales)",
+                "invalidChars": "Caracteres inválidos detectados (un nombre de archivo no puede contener / \\ < > : \" | ? *)",
+                "invalidPlaceholder": "Marcador de posición inválido: {placeholder}",
+                "validTemplate": "Plantilla válida"
+            }
+        },
         "exampleImages": {
             "downloadLocation": "Ubicación de descarga",
             "downloadLocationPlaceholder": "Introduce la ruta de la carpeta para imágenes de ejemplo",
@@ -667,6 +776,13 @@
             "label": "Ocultar actualizaciones de pago",
             "help": "Cuando está activado, los modelos que solo tienen actualizaciones de pago no mostrarán la insignia de 'Actualización disponible'"
         },
+        "priceTracking": {
+            "help": "La API pública de CivitAI no publica los precios de descarga, así que se leen de la página del modelo: una petición adicional por modelo de pago, actualizada según el intervalo de abajo. Los precios se muestran solo en las versiones que aún no tienes.",
+            "enabled": "Mostrar los precios de descarga de las versiones de pago",
+            "enabledHelp": "Lee el precio de descarga de la página del modelo para mostrar cuánto cuestan las versiones de pago y de acceso temprano, y cuándo termina el acceso temprano",
+            "refreshHours": "Intervalo de actualización de precios (horas)",
+            "refreshHoursHelp": "Cuánto tiempo sigue vigente un precio guardado antes de volver a leerse"
+        },
         "licenseIcons": {
             "useNewStyle": "Usar iconos de licencia actualizados",
             "useNewStyleHelp": "Mostrar permisos de licencia con indicadores de color (nuevo estilo) o solo iconos de restricción (estilo clásico). Refleja el diseño actual de CivitAI."
@@ -706,10 +822,40 @@
             "downloadComplete": "Descarga completada exitosamente",
             "enableCivarchiveApi": "Habilitar CivArchive API como proveedor de metadatos",
             "enableCivarchiveApiHelp": "Al activarlo, la API de CivArchive se usa como fuente alternativa de metadatos de modelos (p. ej. para modelos eliminados de CivitAI). Desactívelo para evitar por completo los límites de velocidad de CivArchive.",
+            "enableOpenmodeldbApi": "Habilitar OpenModelDB como proveedor de metadatos",
+            "enableOpenmodeldbApiHelp": "Al activarlo, los metadatos de Upscaler también se consultan en el catálogo de OpenModelDB (openmodeldb.info) cuando CivitAI no tiene ningún registro. El catálogo se almacena en caché localmente y se actualiza a diario.",
             "providerOrder": "Orden de proveedores de metadatos de respaldo",
             "providerOrderHelp": "La API de CivitAI siempre se intenta primero. Elija el orden de los demás proveedores al buscar metadatos.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
             "providerOrderCivitaiSqliteArchive": "CivitAI → Archive DB → CivArchive"
+        },
+        "sidecarStorage": {
+            "mode": "Modo de almacenamiento de archivos sidecar",
+            "modeHelp": "Elige dónde se guardan los archivos sidecar .metadata.json y las imágenes de vista previa: junto a cada archivo de modelo, o en un único directorio centralizado que refleja la estructura de tu biblioteca. Los archivos .civitai.info siempre permanecen junto al archivo de modelo.",
+            "modeOptions": {
+                "alongside": "Junto a los archivos de modelo (predeterminado)",
+                "centralized": "Almacenamiento centralizado"
+            },
+            "path": "Ruta del almacenamiento centralizado",
+            "pathHelp": "Carpeta raíz del almacenamiento centralizado de archivos sidecar. Déjalo vacío para usar la ubicación predeterminada (<settings dir>/sidecars).",
+            "pathPlaceholder": "Vacío = <settings dir>/sidecars",
+            "management": "Migración de archivos sidecar",
+            "managementHelp": "Mueve los archivos sidecar .metadata.json y las imágenes de vista previa existentes entre el almacenamiento junto a los modelos y el almacenamiento centralizado, según el modo seleccionado. Cambiar el modo no mueve los archivos existentes automáticamente.",
+            "migrateButton": "Migrar archivos sidecar ahora",
+            "migratingButton": "Migrando...",
+            "migrating": "Migrando archivos sidecar...",
+            "migrateFailed": "Error al migrar los archivos sidecar: {message}",
+            "migrationDeferred": "Los archivos sidecar existentes no se movieron. Puedes migrarlos más tarde desde Configuración → Biblioteca → Almacenamiento de archivos sidecar.",
+            "confirmToCentralized": "El modo de almacenamiento ha cambiado, pero los archivos sidecar .metadata.json y las imágenes de vista previa existentes no se mueven automáticamente. ¿Moverlos ahora al directorio de almacenamiento centralizado? También puedes hacerlo más tarde con el botón «Migrar archivos sidecar ahora».",
+            "confirmToAlongside": "El modo de almacenamiento ha cambiado, pero los archivos sidecar .metadata.json y las imágenes de vista previa existentes no se mueven automáticamente. ¿Devolverlos ahora junto a sus archivos de modelo? También puedes hacerlo más tarde con el botón «Migrar archivos sidecar ahora».",
+            "confirmRelocateRoot": "El directorio de almacenamiento centralizado ha cambiado, pero los archivos sidecar y las imágenes de vista previa existentes siguen en el directorio anterior. ¿Moverlos ahora al nuevo directorio?",
+            "effectivePathLabel": "Ubicación de almacenamiento efectiva:",
+            "openFolderButton": "Abrir carpeta",
+            "repoWarning": "La ubicación de almacenamiento efectiva está dentro de la carpeta de instalación de LoRA Manager. Reinstalar el plugin o una actualización limpia puede eliminarla — define una ruta de almacenamiento explícita fuera de la carpeta de instalación.",
+            "openLocationSuccess": "Carpeta de almacenamiento de archivos sidecar abierta",
+            "openLocationCopied": "Ruta de almacenamiento de archivos sidecar copiada al portapapeles: {path}",
+            "openLocationClipboardFallback": "Copia manualmente la ruta de almacenamiento de archivos sidecar: {path}",
+            "openLocationFailed": "No se pudo abrir la carpeta de almacenamiento de archivos sidecar"
         },
         "proxySettings": {
             "enableProxy": "Habilitar proxy a nivel de aplicación",
@@ -857,7 +1003,15 @@
                 "complete": "Auto-organización completada",
                 "error": "Error: {error}"
             },
-            "enrichHfAgent": "Enriquecer metadatos HF (IA)",
+            "filenameTemplateProgress": {
+                "initializing": "Inicializando aplicación de plantilla de nombres de archivo...",
+                "starting": "Aplicando plantilla de nombres de archivo a {type}...",
+                "processing": "Procesando ({processed}/{total}) - {success} renombrados, {skipped} omitidos, {failures} fallidos",
+                "completed": "Completado: {success} renombrados, {skipped} omitidos, {failures} fallidos",
+                "complete": "Aplicación de plantilla de nombres de archivo completada",
+                "error": "Error: {error}"
+            },
+            "enrichHfAgent": "Enriquecer metadatos con IA",
             "repairMetadata": "Reparar metadatos de la selección"
         },
         "contextMenu": {
@@ -865,7 +1019,7 @@
             "checkUpdates": "Comprobar actualizaciones",
             "linkModel": "Vincular modelo",
             "linkCivitai": "Re-vincular a CivitAI",
-            "linkHuggingFace": "Vincular a HuggingFace",
+            "linkModelSource": "Vincular a una fuente de modelo",
             "copySyntax": "Copiar sintaxis de LoRA",
             "copyFilename": "Copiar nombre de archivo del modelo",
             "copyRecipeSyntax": "Copiar sintaxis de receta",
@@ -887,7 +1041,8 @@
             "viewAllLoras": "Ver todos los LoRAs",
             "downloadMissingLoras": "Descargar LoRAs faltantes",
             "deleteRecipe": "Eliminar receta",
-            "enrichHfAgent": "Enriquecer metadatos HF (IA)",
+            "enrichHfAgent": "Enriquecer metadatos con IA",
+            "linkHuggingFace": "Vincular a HuggingFace",
             "repairMetadata": "Reparar metadatos"
         }
     },
@@ -906,7 +1061,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "Modelo base",
+                "unknown": "Desconocido"
             },
             "actions": {
                 "openFileLocation": "Abrir ubicación del archivo",
@@ -1226,30 +1383,95 @@
     "embeddings": {
         "title": "Modelos embedding"
     },
+    "other": {
+        "title": "Otros modelos",
+        "disabled": {
+            "title": "La gestión de otros modelos está desactivada",
+            "description": "Actívala para escanear y gestionar archivos VAE, Upscaler, Text Encoder, CLIP Vision y ControlNet, y para descargarlos desde CivitAI.",
+            "enableButton": "Activar otros modelos",
+            "hint": "Puedes cambiar los tipos de modelos gestionados más adelante en Configuración > Biblioteca.",
+            "enableFailed": "No se pudieron activar los otros modelos",
+            "downloadBlocked": "La gestión de otros modelos está desactivada para este tipo de modelo. Actívala en Configuración > Biblioteca para descargar este archivo.",
+            "enableAction": "Activar otros modelos"
+        },
+        "noPaths": {
+            "title": "No se encontraron carpetas de otros modelos",
+            "descriptionStandalone": "La gestión de otros modelos está activada, pero no se encontraron carpetas de otros modelos. Añade tus carpetas de modelos en Configuración → Rutas de modelos y reinicia LoRA Manager.",
+            "hintStandalone": "Solo se escanean los tipos de modelos habilitados; activa los tipos que necesites en Biblioteca → Raíces predeterminadas.",
+            "descriptionComfyUI": "La gestión de otros modelos está activada, pero ninguna de las carpetas de modelos configuradas existe en el disco. Añade las carpetas de modelos correspondientes a tus rutas de modelos de ComfyUI y recarga esta página.",
+            "hintComfyUI": "Los otros modelos se leen de las carpetas vae, upscale_models, text_encoders, clip_vision y controlnet de ComfyUI.",
+            "openSettings": "Abrir configuración",
+            "openModelPaths": "Configurar carpetas de modelos",
+            "openSettingsFolder": "Abrir carpeta de ajustes"
+        }
+    },
     "sidebar": {
         "modelRoot": "Raíz",
         "collapseAll": "Colapsar todas las carpetas",
+        "collapseAllDisabled": "No disponible en la vista de lista",
         "hideOnThisPage": "Ocultar barra lateral en esta página",
         "showSidebar": "Mostrar barra lateral",
         "sidebarHiddenNotification": "Barra lateral oculta en la página {page}",
-        "switchToListView": "Cambiar a vista de lista",
-        "switchToTreeView": "Cambiar a vista de árbol",
+        "viewOptions": "Opciones de vista",
+        "treeView": "Vista de árbol",
+        "listView": "Vista de lista",
         "recursiveOn": "Incluir subcarpetas",
-        "recursiveOff": "Solo carpeta actual",
-        "recursiveUnavailable": "La búsqueda recursiva solo está disponible en la vista en árbol",
-        "collapseAllDisabled": "No disponible en vista de lista",
+        "createFolder": "Nueva carpeta",
+        "newSubfolder": "Nueva subcarpeta",
+        "showEmptyFolders": "Mostrar carpetas vacías",
+        "createFolderResult": {
+            "success": "Carpeta \"{name}\" creada",
+            "failed": "Error al crear la carpeta: {message}",
+            "unsupported": "La creación de carpetas no es compatible con esta página",
+            "noRoot": "No hay ninguna raíz de modelo configurada"
+        },
+        "deleteFolder": "Eliminar carpeta",
+        "deleteFolderModal": {
+            "title": "¿Eliminar carpeta?",
+            "message": "La carpeta y todo su contenido se eliminarán permanentemente del disco.",
+            "folderLabel": "Carpeta",
+            "emptyNote": "Esta carpeta no contiene modelos. Los demás archivos que contenga también se eliminarán.",
+            "notEmptyTitle": "La carpeta no está vacía",
+            "notEmptyMessage": "Esta carpeta aún contiene modelos. Elimínalos o muévelos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "notEmptyMessageCount": "Esta carpeta aún contiene {count} archivo(s) de modelo. Elimínalos o muévelos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "notEmptyMessageExcluded": "Esta carpeta aún contiene {count} archivo(s) de modelo, de los cuales {excluded} están excluidos de la biblioteca. Anula su exclusión en «Gestionar modelos excluidos» y elimínalos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "busyTitle": "Todavía hay una eliminación pendiente",
+            "checking": "Comprobando el contenido de la carpeta...",
+            "confirm": "Eliminar carpeta"
+        },
+        "deleteFolderResult": {
+            "success": "Carpeta \"{name}\" eliminada",
+            "successWithFiles": "Carpeta \"{name}\" eliminada junto con {count} elemento(s) más",
+            "restored": "Carpeta restaurada",
+            "failed": "Error al eliminar la carpeta: {message}",
+            "notEmpty": "Esta carpeta aún contiene modelos. Actualiza la barra lateral e inténtalo de nuevo.",
+            "notEmptyWithCount": "Esta carpeta aún contiene {count} archivo(s) de modelo. Actualiza la barra lateral e inténtalo de nuevo.",
+            "busy": "Todavía hay una eliminación pendiente dentro de esta carpeta. Espera a que caduque la ventana de deshacer.",
+            "unsupported": "La eliminación de carpetas no es compatible con esta página",
+            "noRoot": "No hay ninguna raíz de modelo configurada"
+        },
+        "renameFolder": "Cambiar nombre de la carpeta",
+        "renameFolderResult": {
+            "success": "Carpeta renombrada a \"{name}\"",
+            "failed": "Error al cambiar el nombre de la carpeta: {message}",
+            "targetExists": "Ya existe una carpeta con ese nombre aquí",
+            "busy": "Todavía hay una eliminación pendiente dentro de esta carpeta. Espera a que caduque la ventana de deshacer.",
+            "unsupported": "El cambio de nombre de carpetas no es compatible con esta página",
+            "noRoot": "No hay ninguna raíz de modelo configurada"
+        },
         "dragDrop": {
             "unableToResolveRoot": "No se puede determinar la ruta de destino para el movimiento.",
             "moveUnsupported": "El movimiento no es compatible con este elemento.",
-            "createFolderHint": "Suelta para crear una nueva carpeta",
             "newFolderName": "Nombre de la nueva carpeta",
-            "folderNameHint": "Presiona Enter para confirmar, Escape para cancelar",
             "emptyFolderName": "Por favor, introduce un nombre de carpeta",
             "invalidFolderName": "El nombre de la carpeta contiene caracteres no válidos",
-            "noDragState": "No se encontró ninguna operación de arrastre pendiente"
+            "noDragState": "No se encontró ninguna operación de arrastre pendiente",
+            "createFolderHint": "Suelta para crear una nueva carpeta",
+            "folderNameHint": "Presiona Enter para confirmar, Escape para cancelar"
         },
         "empty": {
             "noFolders": "No se encontraron carpetas",
+            "createHint": "Haz clic en el botón Nueva carpeta de arriba para crear carpetas",
             "dragHint": "Arrastra elementos aquí para crear carpetas"
         },
         "folderUpdateCheck": {
@@ -1258,7 +1480,11 @@
             "success": "Se encontraron {count} actualización(es) para {type}s en esta carpeta",
             "none": "Todos los {type}s en esta carpeta están actualizados",
             "error": "Error al buscar actualizaciones de {type} en la carpeta: {message}"
-        }
+        },
+        "switchToListView": "Cambiar a vista de lista",
+        "switchToTreeView": "Cambiar a vista de árbol",
+        "recursiveOff": "Solo carpeta actual",
+        "recursiveUnavailable": "La búsqueda recursiva solo está disponible en la vista en árbol"
     },
     "statistics": {
         "title": "Estadísticas",
@@ -1378,9 +1604,9 @@
         "download": {
             "title": "Descargar modelo desde URL",
             "titleWithType": "Descargar {type} desde URL",
-            "civitaiUrl": "URL de CivitAI:",
+            "civitaiUrl": "URL del modelo:",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "Ingrese una URL de CivitAI, CivArchive o Hugging Face por línea. Admite múltiples URLs para descarga por lotes.",
+            "urlHint": "Ingrese una URL de CivitAI, CivArchive, Hugging Face o ModelScope por línea. Admite múltiples URLs para descarga por lotes.",
             "selectHfFiles": "Seleccione el/los archivo(s) para descargar de este repositorio:",
             "selectAll": "Seleccionar todo",
             "fetchingRepoFiles": "Obteniendo archivos del repositorio...",
@@ -1390,6 +1616,10 @@
             "selectRootDirectory": "Selecciona un directorio raíz",
             "selectModelRoot": "Seleccionar raíz del modelo:",
             "selectTypeRoot": "Seleccionar raíz de {type}:",
+            "routingOverride": {
+                "label": "Tipo de destino:",
+                "tooltip": "Detectado automáticamente a partir de los metadatos del modelo. Cámbialo si la detección fue incorrecta; cambiar desactiva «Usar ruta predeterminada» para esta descarga."
+            },
             "targetFolderPath": "Ruta de carpeta de destino:",
             "browseFolders": "Explorar carpetas:",
             "createNewFolder": "Crear nueva carpeta",
@@ -1413,9 +1643,9 @@
                 "inLibrary": "En la biblioteca"
             },
             "errors": {
-                "invalidUrl": "Formato de URL de CivitAI inválido",
+                "invalidUrl": "Formato de URL de modelo inválido",
                 "noVersions": "No hay versiones disponibles para este modelo",
-                "mixedSources": "No se pueden mezclar URL de CivitAI y Hugging Face en el mismo lote.",
+                "mixedSources": "No se pueden mezclar URL de CivitAI y Hugging Face / ModelScope en el mismo lote.",
                 "noModelFiles": "No se encontraron archivos de modelo en este repositorio."
             },
             "status": {
@@ -1429,6 +1659,10 @@
             "progress": {
                 "currentFile": "Archivo actual:",
                 "downloading": "Descargando: {name}",
+                "metadata": "Metadatos: {name}",
+                "indexingFile": "Leyendo el archivo de modelo...",
+                "fetchingSourceMetadata": "Obteniendo metadatos de {source}...",
+                "fetchingMetadata": "Obteniendo metadatos...",
                 "transferred": "Descargado: {downloaded} / {total}",
                 "transferredSimple": "Descargado: {downloaded}",
                 "transferredUnknown": "Descargado: --",
@@ -1496,6 +1730,33 @@
             "message": "Esto comprobará las actualizaciones de todos los {typePlural} de tu biblioteca. En colecciones grandes puede tardar un poco más.",
             "tip": "¿Quieres hacerlo por partes? Activa el modo por lotes, selecciona los modelos que necesites y usa \"Comprobar actualizaciones para la selección\".",
             "action": "Comprobar todo"
+        },
+        "filenameTemplateConfirm": {
+            "titleApply": "¿Aplicar la plantilla de nombres de archivo a la biblioteca?",
+            "titleRevert": "¿Restaurar los nombres de archivo originales?",
+            "revertButton": "Restaurar nombres de archivo originales"
+        },
+        "sidecarMigrationConfirm": {
+            "titleToCentralized": "¿Mover los archivos sidecar al almacenamiento centralizado?",
+            "titleToAlongside": "¿Devolver los archivos sidecar junto a los archivos de modelo?",
+            "confirmButton": "Migrar ahora",
+            "titleRelocateRoot": "¿Mover los archivos sidecar al nuevo directorio de almacenamiento?",
+            "destination": "Destino: {path}"
+        },
+        "sidecarMigrationResult": {
+            "title": "Resumen de la migración de archivos sidecar",
+            "completedSuccessfully": "Migración completada correctamente",
+            "completedWithErrors": "Completado con {count} error(es)",
+            "statMoved": "Archivos movidos",
+            "statModels": "Modelos",
+            "statSkipped": "Omitidos",
+            "statConflicts": "Conflictos resueltos",
+            "statErrors": "Errores",
+            "failedItems": "Elementos fallidos ({count})",
+            "columnModel": "Modelo",
+            "columnError": "Error",
+            "successMessage": "Se movieron {moved} archivos para {models} modelos",
+            "location": "Ubicación de almacenamiento: {path}"
         },
         "bulkAddTags": {
             "title": "Añadir etiquetas a múltiples modelos",
@@ -1580,12 +1841,16 @@
             "pathPlaceholder": "Escribe la ruta de la carpeta o selecciona del árbol de abajo...",
             "root": "Raíz"
         },
-        "linkHuggingFace": {
-            "title": "Vincular a HuggingFace",
-            "infoText": "Pegue la URL del repositorio de HuggingFace para asociar este modelo. Esto permite el enriquecimiento de metadatos con IA.",
-            "urlLabel": "URL del repositorio de HuggingFace:",
+        "linkModelSource": {
+            "title": "Vincular a una fuente de modelo",
+            "infoText": "Pegue la URL de la página del modelo para asociar este modelo con su fuente. La vinculación permite el enriquecimiento de metadatos con IA para modelos de Hugging Face y ModelScope.",
+            "urlLabel": "URL de la página del modelo:",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "Ingrese la URL completa del repositorio de HuggingFace.",
+            "helpText": "Ingrese la URL completa de la página del modelo. Sitios soportados:",
+            "enrichNote": "El enriquecimiento con IA necesita una ficha de modelo legible. Los sitios que no la exponen (actualmente TensorArt) solo se pueden vincular.",
+            "urlRequired": "Ingrese la URL de la página del modelo.",
+            "invalidUrl": "URL no soportada. Sitios soportados: Hugging Face, ModelScope, TensorArt.",
+            "linking": "Vinculando la fuente del modelo...",
             "confirmAction": "Guardar y vincular"
         },
         "relinkCivitai": {
@@ -1625,6 +1890,8 @@
                 "sendToWorkflow": "Enviar a ComfyUI",
                 "sendToWorkflowText": "Enviar a ComfyUI",
                 "copyHash": "Copiar hash",
+                "copyCivitaiId": "Copiar ID de Civitai",
+                "civitaiIdCopied": "ID de Civitai copiado al portapapeles",
                 "deleteModelWithShortcut": "Eliminar modelo (Del)"
             },
             "openFileLocation": {
@@ -1643,6 +1910,8 @@
                 "baseModel": "Modelo base",
                 "size": "Tamaño",
                 "hashes": "Hashes",
+                "civitaiModelId": "ID del modelo",
+                "civitaiVersionId": "ID de versión",
                 "unknown": "Desconocido",
                 "usageTips": "Consejos de uso",
                 "additionalNotes": "Notas adicionales",
@@ -1761,7 +2030,9 @@
                 "nsfwMature": "Contenido para adultos",
                 "nsfwR": "Contenido clasificación R",
                 "nsfwX": "Contenido clasificación X",
-                "nsfwXxx": "Contenido clasificación XXX"
+                "nsfwXxx": "Contenido clasificación XXX",
+                "layoutGallery": "Vista de galería",
+                "layoutList": "Vista de lista"
             },
             "versions": {
                 "heading": "Versiones del modelo",
@@ -1792,10 +2063,15 @@
                     "earlyAccessTooltip": "Esta versión requiere actualmente acceso temprano de CivitAI",
                     "paid": "De pago",
                     "paidTooltip": "Esta versión requiere pago para descargarse",
+                    "priceSaleTooltip": "En oferta, normalmente {list} Buzz",
+                    "priceBlueBuzzTooltip": "También se puede pagar con Blue Buzz",
+                    "freeNow": "Ahora gratis",
+                    "freeNowTooltip": "Esta versión ya no requiere pago",
                     "ignored": "Ignorada",
                     "ignoredTooltip": "Las notificaciones de actualización están desactivadas para esta versión",
                     "onSiteOnly": "Solo en Sitio",
-                    "onSiteOnlyTooltip": "Esta versión solo está disponible para generación en el sitio de CivitAI"
+                    "onSiteOnlyTooltip": "Esta versión solo está disponible para generación en el sitio de CivitAI",
+                    "earlyAccessTooltipUntil": "Acceso temprano hasta el {date}, descarga gratuita después"
                 },
                 "actions": {
                     "download": "Descargar",
@@ -1832,7 +2108,7 @@
                 "empty": "Aún no hay historial de versiones para este modelo.",
                 "error": "No se pudieron cargar las versiones.",
                 "missingModelId": "Este modelo no tiene un ID de modelo de CivitAI.",
-                "hfGroupInfo": "Este es un grupo de modelos de HuggingFace. Abra la biblioteca para ver todas las versiones en la cuadrícula.",
+                "sourceGroupInfo": "Este es un grupo de modelos de {source}. Abra la biblioteca para ver todas las versiones en la cuadrícula.",
                 "confirm": {
                     "delete": "¿Eliminar esta versión de tu biblioteca?"
                 },
@@ -1842,7 +2118,8 @@
                     "versionIgnored": "Se ignoran las actualizaciones de esta versión",
                     "versionUnignored": "Versión habilitada nuevamente",
                     "versionDeleted": "Versión eliminada"
-                }
+                },
+                "hfGroupInfo": "Este es un grupo de modelos de HuggingFace. Abra la biblioteca para ver todas las versiones en la cuadrícula."
             }
         },
         "metadataFetchSummary": {
@@ -1874,6 +2151,14 @@
             "close": "Cerrar",
             "copyReport": "Copiar informe",
             "retryFailed": "Reintentar fallidos ({count})"
+        },
+        "linkHuggingFace": {
+            "title": "Vincular a HuggingFace",
+            "infoText": "Pegue la URL del repositorio de HuggingFace para asociar este modelo. Esto permite el enriquecimiento de metadatos con IA.",
+            "urlLabel": "URL del repositorio de HuggingFace:",
+            "urlPlaceholder": "https://huggingface.co/user/repo",
+            "helpText": "Ingrese la URL completa del repositorio de HuggingFace.",
+            "confirmAction": "Guardar y vincular"
         }
     },
     "modelTags": {
@@ -1903,6 +2188,10 @@
         "embeddings": {
             "title": "Inicializando gestor de embedding",
             "message": "Escaneando y construyendo caché de embedding. Esto puede tomar unos minutos..."
+        },
+        "other": {
+            "title": "Inicializando el gestor de otros modelos",
+            "message": "Escaneando y construyendo la caché de modelos. Esto puede tomar unos minutos..."
         },
         "recipes": {
             "title": "Inicializando gestor de recetas",
@@ -2199,6 +2488,9 @@
             "autoOrganizeSuccess": "Auto-organización completada exitosamente para {count} {type}",
             "autoOrganizePartialSuccess": "Auto-organización completada con {success} movidos, {failures} fallidos de un total de {total} modelos",
             "autoOrganizeFailed": "Auto-organización fallida: {error}",
+            "filenameTemplateSuccess": "Plantilla de nombres de archivo aplicada exitosamente para {count} {type}",
+            "filenameTemplatePartialSuccess": "Plantilla de nombres de archivo aplicada con {success} renombrados, {failures} fallidos de un total de {total} modelos",
+            "filenameTemplateFailed": "Aplicación de la plantilla de nombres de archivo fallida: {error}",
             "noModelsSelected": "No hay modelos seleccionados"
         },
         "recipes": {
@@ -2366,11 +2658,14 @@
             "checkpointRootsFailed": "Error al cargar raíces de checkpoint: {message}",
             "unetRootsFailed": "Error al cargar raíces de Diffusion Model: {message}",
             "embeddingRootsFailed": "Error al cargar raíces de embedding: {message}",
+            "otherRootsFailed": "Error al cargar raíces de otros modelos: {message}",
             "mappingsUpdated": "Mapeos de rutas de modelo base actualizados ({count} mapeo{plural})",
             "mappingsCleared": "Mapeos de rutas de modelo base limpiados",
             "mappingSaveFailed": "Error al guardar mapeos de modelo base: {message}",
             "downloadTemplatesUpdated": "Plantillas de rutas de descarga actualizadas",
             "downloadTemplatesFailed": "Error al guardar plantillas de rutas de descarga: {message}",
+            "filenameTemplatesUpdated": "Plantillas de nombres de archivo actualizadas",
+            "filenameTemplatesFailed": "Error al guardar plantillas de nombres de archivo: {message}",
             "recipesPathUpdated": "Ruta de almacenamiento de recetas actualizada",
             "recipesPathSaveFailed": "Error al actualizar la ruta de almacenamiento de recetas: {message}",
             "settingsUpdated": "Configuración actualizada: {setting}",
@@ -2470,7 +2765,9 @@
             "linkCivArchSuccess": "Modelo re-vinculado exitosamente mediante CivitArchive",
             "fetchMetadataFirst": "Por favor obtén metadatos de CivitAI primero",
             "noCivitaiInfo": "No hay información de CivitAI disponible",
-            "missingHash": "Hash del modelo no disponible"
+            "missingHash": "Hash del modelo no disponible",
+            "enrichNeedsSource": "Vincule este modelo a una fuente de modelo primero (Vincular modelo → Vincular a una fuente de modelo)",
+            "enrichUnsupportedSource": "El enriquecimiento con IA no está disponible para modelos de {source}"
         },
         "exampleImages": {
             "pathUpdated": "Ruta de imágenes de ejemplo actualizada exitosamente",
@@ -2565,6 +2862,9 @@
             "filename_conflicts": {
                 "title": "Conflictos de nombres de archivo duplicados"
             },
+            "sidecar_mirror_orphans": {
+                "title": "Archivos sidecar centralizados"
+            },
             "ui_version": {
                 "title": "Versión de la interfaz"
             }
@@ -2628,6 +2928,17 @@
             "rebuilding": "Reconstruyendo caché...",
             "rebuildFailed": "Error al reconstruir la caché: {error}",
             "retry": "Reintentar"
+        },
+        "otherModels": {
+            "title": "La gestión de otros modelos ya está disponible",
+            "content": "Escanea y gestiona archivos VAE, Upscaler, Text Encoder, CLIP Vision y ControlNet, y descárgalos desde CivitAI, todo desde una página dedicada.",
+            "enable": "Activar otros modelos",
+            "openSettings": "Abrir configuración"
+        },
+        "pager": {
+            "previous": "Notificación anterior",
+            "next": "Notificación siguiente",
+            "position": "Notificación {current} de {total}"
         }
     },
     "outputs": {
