@@ -26,6 +26,12 @@ from pathlib import Path
 
 CANONICAL_INDENT = 4
 CANONICAL_SEPARATORS = (",", ": ")
+# ``en.json`` is the hand-maintained reference locale: upstream keeps it at
+# 2-space indent while the translated locales are written by
+# scripts/sync_translation_keys.py at 4-space indent. Both layouts are
+# canonical for their group (see tests/i18n/test_i18n.py).
+REFERENCE_LOCALE = "en"
+REFERENCE_INDENT = 2
 
 
 def _load(path: str) -> dict:
@@ -74,8 +80,8 @@ def _deep_merge(base: dict, ours: dict, theirs: dict) -> dict:
     return result
 
 
-def _canonical(data: dict) -> str:
-    return json.dumps(data, indent=CANONICAL_INDENT, ensure_ascii=False,
+def _canonical(data: dict, indent: int) -> str:
+    return json.dumps(data, indent=indent, ensure_ascii=False,
                       separators=CANONICAL_SEPARATORS) + "\n"
 
 
@@ -95,7 +101,9 @@ def main() -> int:
         return 1
 
     merged = _deep_merge(base, ours, theirs)
-    Path(ours_path).write_text(_canonical(merged), encoding="utf-8")
+    locale = Path(ours_path).stem
+    indent = REFERENCE_INDENT if locale == REFERENCE_LOCALE else CANONICAL_INDENT
+    Path(ours_path).write_text(_canonical(merged, indent), encoding="utf-8")
     return 0
 
 

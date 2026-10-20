@@ -107,6 +107,36 @@ def test_output_uses_canonical_format(tmp_path) -> None:
     assert ours_path.read_text(encoding="utf-8") == expected
 
 
+def run_driver_on(tmp_path: Path, locale: str, base: dict, ours: dict, theirs: dict) -> Path:
+    """Run the driver with ``ours`` named after ``locale`` to exercise the
+    per-locale indent selection (en.json = 2-space, translated = 4-space)."""
+    base_path = tmp_path / f"{locale}.base.json"
+    base_path.write_text(json.dumps(base, indent=INDENT, ensure_ascii=False, separators=SEPARATORS), encoding="utf-8")
+    ours_path = tmp_path / f"{locale}.json"
+    ours_path.write_text(json.dumps(ours, indent=INDENT, ensure_ascii=False, separators=SEPARATORS), encoding="utf-8")
+    theirs_path = tmp_path / f"{locale}.theirs.json"
+    theirs_path.write_text(json.dumps(theirs, indent=INDENT, ensure_ascii=False, separators=SEPARATORS), encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(DRIVER), str(base_path), str(ours_path), str(theirs_path)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"driver failed: {result.stderr}"
+    return ours_path
+
+
+@pytest.mark.parametrize("locale,indent", [("en", 2), ("zh-CN", 4)])
+def test_reference_locale_keeps_two_space_indent(tmp_path, locale: str, indent: int) -> None:
+    base = {"common": {"a": "1"}}
+    ours = {"common": {"a": "1", "b": "2"}}
+    theirs = {"common": {"a": "1", "c": "3"}}
+    ours_path = run_driver_on(tmp_path, locale, base, ours, theirs)
+    merged = {"common": {"a": "1", "c": "3", "b": "2"}}  # driver orders theirs' keys first
+    expected = json.dumps(merged, indent=indent,
+                          ensure_ascii=False, separators=SEPARATORS) + "\n"
+    assert ours_path.read_text(encoding="utf-8") == expected
+
+
 def test_invalid_json_returns_error(tmp_path) -> None:
     base_path = _write(tmp_path, "base.json", {"a": "1"})
     ours_path = tmp_path / "ours.json"

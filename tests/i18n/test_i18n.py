@@ -238,10 +238,13 @@ def test_locale_files_match_canonical_format(locale: str, loaded_locales: Dict[s
     Regenerate with: python scripts/sync_translation_keys.py
     """
     path = LOCALES_DIR / f"{locale}.json"
+    # en.json is the hand-maintained reference (2-space indent); every other
+    # locale is written by scripts/sync_translation_keys.py at 4-space indent.
+    indent = REFERENCE_INDENT if locale == "en" else CANONICAL_INDENT
     canonical = (
         json.dumps(
             loaded_locales[locale],
-            indent=CANONICAL_INDENT,
+            indent=indent,
             ensure_ascii=False,
             separators=CANONICAL_SEPARATORS,
         )
