@@ -40,7 +40,7 @@
           id="embeddingsNavItem">
           <i class="fas fa-code"></i> <span>{{ t('header.navigation.embeddings') }}</span>
         </a>
-        <a href="/outputs" class="nav-item{% if current_path.startswith('/outputs') %} active{% endif %}"
+        <a href="{{ rel_prefix }}outputs" class="nav-item{% if current_path.startswith('/outputs') %} active{% endif %}"
           id="outputsNavItem">
           <i class="fas fa-image"></i> <span>{{ t('header.navigation.outputs') }}</span>
         </a>

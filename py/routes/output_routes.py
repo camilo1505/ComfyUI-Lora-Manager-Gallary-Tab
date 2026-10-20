@@ -9,6 +9,7 @@ from ..config import config
 from ..services.settings_manager import get_settings_manager
 from ..services.server_i18n import server_i18n
 from ..services.outputs_service import OutputsService
+from ..utils.url_utils import relative_root_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,7 @@ class OutputRoutes:
                 settings=settings_manager,
                 request=request,
                 t=server_i18n.get_translation,
+                rel_prefix=relative_root_prefix(request.path),
                 version=self._get_app_version(),
             )
 

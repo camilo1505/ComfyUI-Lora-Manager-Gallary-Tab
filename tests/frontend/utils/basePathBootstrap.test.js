@@ -87,6 +87,7 @@ describe('base_path_bootstrap.html', () => {
         ['/comfyui/embeddings', '/comfyui'],
         ['/comfyui/other', '/comfyui'],
         ['/comfyui/statistics', '/comfyui'],
+        ['/comfyui/outputs', '/comfyui'],
         ['/ComfyBackendDirect/loras', '/ComfyBackendDirect'],
         ['/proxy/nested/loras', '/proxy/nested'],
     ])('detects prefix for %s', (pathname, expected) => {
@@ -98,6 +99,8 @@ describe('base_path_bootstrap.html', () => {
         runBootstrap('/comfyui/lorasgallery');
         expect(window.LM_BASE_PATH).toBe('');
         runBootstrap('/comfyui/foo-loras');
+        expect(window.LM_BASE_PATH).toBe('');
+        runBootstrap('/comfyui/outputs-gallery');
         expect(window.LM_BASE_PATH).toBe('');
     });
 
