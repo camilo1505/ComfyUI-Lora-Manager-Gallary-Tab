@@ -156,7 +156,7 @@ def _find_missing_loras(names: list[str]) -> list[str]:
 
         lookup = {}
         basename_candidates = {}
-        for item in cache.raw_data:
+        for item in list(cache.raw_data):
             file_path = item.get("file_path")
             if not file_path:
                 continue
@@ -261,6 +261,36 @@ def validate_lora_entries(kwargs):
     if not missing:
         return None
     return "Missing LoRA(s) in local library: " + ", ".join(missing)
+
+
+def validate_loader_model_name(model_name):
+    """Validate a checkpoint/unet loader node's model name against the cache.
+
+    Used by the loader nodes' ``VALIDATE_INPUTS`` so ComfyUI skips its strict
+    "value not in list" check for the model combo (declared inputs bypass it)
+    and this helper decides instead. The combo list is forward-slashed on
+    every platform, but Windows workflows saved before the forward-slash
+    paths fix carry backslash-spelled names ("dir\\model.safetensors"), so
+    the name is separator-normalized before the cache lookup.
+
+    Returns:
+        None when the name resolves to an indexed model, the input is wired
+        (non-string), or validation cannot run (scanner not ready); otherwise
+        a descriptive error string. Verification failures are treated as
+        valid so queueing is never blocked by validation machinery itself.
+    """
+    if not isinstance(model_name, str) or not model_name:
+        return None
+    try:
+        from ..utils.utils import get_checkpoint_info_absolute
+
+        _, metadata = get_checkpoint_info_absolute(model_name.replace("\\", "/"))
+    except Exception:
+        logger.exception("Failed to validate loader model name")
+        return None
+    if metadata is None:
+        return f"Model '{model_name}' not found in LoRA Manager cache."
+    return None
 
 
 def load_state_dict_in_safetensors(path, device="cpu", filter_prefix=""):

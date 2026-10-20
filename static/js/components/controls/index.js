@@ -4,9 +4,16 @@ import { LorasControls } from './LorasControls.js';
 import { CheckpointsControls } from './CheckpointsControls.js';
 import { EmbeddingsControls } from './EmbeddingsControls.js';
 import { OutputsControls } from './OutputsControls.js';
+import { OtherControls } from './OtherControls.js';
 
-export { PageControls, LorasControls, CheckpointsControls, EmbeddingsControls, OutputsControls };
+// Export the classes
+export { PageControls, LorasControls, CheckpointsControls, EmbeddingsControls, OutputsControls, OtherControls };
 
+/**
+ * Factory function to create the appropriate controls based on page type
+ * @param {string} pageType - The type of page ('loras', 'checkpoints', 'embeddings', 'outputs', or 'other')
+ * @returns {PageControls} - The appropriate controls instance
+ */
 export function createPageControls(pageType) {
     if (pageType === 'loras') {
         return new LorasControls();
@@ -16,6 +23,8 @@ export function createPageControls(pageType) {
         return new EmbeddingsControls();
     } else if (pageType === 'outputs') {
         return new OutputsControls(pageType);
+    } else if (pageType === 'other') {
+        return new OtherControls();
     } else {
         console.error(`Unknown page type: ${pageType}`);
         return null;

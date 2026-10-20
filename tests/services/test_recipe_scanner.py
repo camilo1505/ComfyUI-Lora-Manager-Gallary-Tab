@@ -1904,6 +1904,115 @@ async def test_update_lora_filename_by_hash_updates_affected_recipes(
 
 
 @pytest.mark.asyncio
+async def test_update_lora_filename_by_hash_bulk_mode_skips_scan_and_defers_resort(
+    tmp_path: Path, recipe_scanner, monkeypatch: pytest.MonkeyPatch
+):
+    """Bulk rename path: prebuilt hash index, no per-call cache walk/resort."""
+    scanner, _ = recipe_scanner
+    recipes_dir = Path(config.loras_roots[0]) / "recipes"
+    recipes_dir.mkdir(parents=True, exist_ok=True)
+
+    recipe1_id = "recipe-bulk-1"
+    recipe1_path = recipes_dir / f"{recipe1_id}.recipe.json"
+    recipe1_data = {
+        "id": recipe1_id,
+        "file_path": str(tmp_path / "bulk1.png"),
+        "title": "Bulk 1",
+        "modified": 0.0,
+        "created_date": 0.0,
+        "loras": [{"file_name": "old_name", "hash": "hash1"}],
+    }
+    recipe1_path.write_text(json.dumps(recipe1_data))
+    await scanner.add_recipe(dict(recipe1_data))
+
+    # Build the index once (O(recipes)), as a bulk rename session does.
+    hash_index = await scanner.build_lora_hash_index()
+    assert "hash1" in hash_index
+
+    # Spies: the bulk call must not walk the recipe cache again, and must not
+    # schedule a resort per call.
+    get_cached_calls = 0
+    original_get_cached = scanner.get_cached_data
+
+    async def counting_get_cached_data(*args, **kwargs):
+        nonlocal get_cached_calls
+        get_cached_calls += 1
+        return await original_get_cached(*args, **kwargs)
+
+    monkeypatch.setattr(scanner, "get_cached_data", counting_get_cached_data)
+
+    resort_calls = 0
+    original_schedule = scanner._schedule_resort
+
+    def counting_schedule_resort(**kwargs):
+        nonlocal resort_calls
+        resort_calls += 1
+        original_schedule(**kwargs)
+
+    monkeypatch.setattr(scanner, "_schedule_resort", counting_schedule_resort)
+
+    file_count, cache_count = await scanner.update_lora_filename_by_hash(
+        "HASH1", "new_name", hash_index=hash_index, defer_maintenance=True
+    )
+
+    assert (file_count, cache_count) == (1, 1)
+    assert get_cached_calls == 0
+    assert resort_calls == 0
+
+    # The per-match recipe JSON rewrite must still happen.
+    persisted1 = json.loads(recipe1_path.read_text())
+    assert persisted1["loras"][0]["file_name"] == "new_name"
+    cached1 = next(r for r in hash_index["hash1"] if r["id"] == recipe1_id)
+    assert cached1["loras"][0]["file_name"] == "new_name"
+
+    # Deferred maintenance runs exactly once at finalize.
+    await scanner.finalize_bulk_filename_updates()
+    await asyncio.sleep(0)
+    assert resort_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_update_lora_filename_by_hash_with_index_still_resorts_when_not_deferred(
+    tmp_path: Path, recipe_scanner, monkeypatch: pytest.MonkeyPatch
+):
+    """hash_index without defer_maintenance: O(1) lookup, immediate resort."""
+    scanner, _ = recipe_scanner
+    recipes_dir = Path(config.loras_roots[0]) / "recipes"
+    recipes_dir.mkdir(parents=True, exist_ok=True)
+
+    recipe1_id = "recipe-idx-1"
+    recipe1_path = recipes_dir / f"{recipe1_id}.recipe.json"
+    recipe1_data = {
+        "id": recipe1_id,
+        "file_path": str(tmp_path / "idx1.png"),
+        "title": "Index 1",
+        "modified": 0.0,
+        "created_date": 0.0,
+        "loras": [{"file_name": "old_name", "hash": "hash1"}],
+    }
+    recipe1_path.write_text(json.dumps(recipe1_data))
+    await scanner.add_recipe(dict(recipe1_data))
+
+    hash_index = await scanner.build_lora_hash_index()
+
+    resort_calls = 0
+    original_schedule = scanner._schedule_resort
+
+    def counting_schedule_resort(**kwargs):
+        nonlocal resort_calls
+        resort_calls += 1
+        original_schedule(**kwargs)
+
+    monkeypatch.setattr(scanner, "_schedule_resort", counting_schedule_resort)
+
+    file_count, cache_count = await scanner.update_lora_filename_by_hash(
+        "hash1", "new_name", hash_index=hash_index
+    )
+
+    assert (file_count, cache_count) == (1, 1)
+    assert resort_calls == 1
+
+@pytest.mark.asyncio
 async def test_get_paginated_data_filters_by_favorite(recipe_scanner):
     scanner, _ = recipe_scanner
 
@@ -1953,6 +2062,52 @@ async def test_get_paginated_data_filters_by_favorite(recipe_scanner):
         page=1, page_size=10, filters={"favorite": False}
     )
     assert len(result_fav_false["items"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_paginated_data_filters_by_has_workflow(recipe_scanner):
+    scanner, _ = recipe_scanner
+
+    await scanner.add_recipe(
+        {
+            "id": "no-workflow",
+            "file_path": "path/no-workflow.png",
+            "title": "No Workflow Recipe",
+            "modified": 1.0,
+            "created_date": 1.0,
+            "loras": [],
+            "has_workflow": False,
+        }
+    )
+
+    await scanner.add_recipe(
+        {
+            "id": "with-workflow",
+            "file_path": "path/with-workflow.png",
+            "title": "Workflow Recipe",
+            "modified": 2.0,
+            "created_date": 2.0,
+            "loras": [],
+            "has_workflow": True,
+        }
+    )
+
+    await asyncio.sleep(0)
+    await _wait_for_resort(scanner)
+
+    result_all = await scanner.get_paginated_data(page=1, page_size=10)
+    assert len(result_all["items"]) == 2
+
+    result_wf = await scanner.get_paginated_data(
+        page=1, page_size=10, filters={"has_workflow": True}
+    )
+    assert len(result_wf["items"]) == 1
+    assert result_wf["items"][0]["id"] == "with-workflow"
+
+    result_wf_false = await scanner.get_paginated_data(
+        page=1, page_size=10, filters={"has_workflow": False}
+    )
+    assert len(result_wf_false["items"]) == 2
 
 
 @pytest.mark.asyncio
@@ -2513,7 +2668,7 @@ async def test_on_library_changed_bumps_cache_version(tmp_path: Path, monkeypatc
     scanner = DummyScanner(str(tmp_path))
     assert scanner.cache_version == 0
 
-    async def _noop_initialize() -> None:
+    async def _noop_initialize(reconcile: bool = False) -> None:
         pass
 
     monkeypatch.setattr(scanner, "initialize_in_background", _noop_initialize)

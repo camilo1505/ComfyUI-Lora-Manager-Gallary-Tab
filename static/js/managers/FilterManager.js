@@ -5,11 +5,48 @@ import { getApiEndpoints } from '../api/apiConfig.js';
 import { removeStorageItem, setStorageItem, getStorageItem } from '../utils/storageHelpers.js';
 import { MODEL_TYPE_DISPLAY_NAMES } from '../utils/constants.js';
 import { translate } from '../utils/i18nHelpers.js';
+import { formatCount, formatCountTitle } from '../utils/formatters.js';
 import { FilterPresetManager, EMPTY_WILDCARD_MARKER } from './FilterPresetManager.js';
 
 // LoRA availability statuses available on the recipes page. No statuses
 // selected (the default) means no filtering.
 const LORA_AVAILABILITY_STATUSES = ['ready', 'missing', 'deleted'];
+
+/**
+ * Render a filter chip's label and its optional count.
+ *
+ * The name gets its own span so CSS can ellipsize it instead of letting a long
+ * name squeeze the count pill out of the chip; the chip tooltip repeats the
+ * full name next to the exact count, which stays readable there even when the
+ * number on screen is abbreviated. Both parts are set through textContent, so
+ * a tag name is never parsed as HTML.
+ *
+ * @param {HTMLElement} chip - The chip element to fill
+ * @param {string} name - Label text
+ * @param {number|null} [count] - Entry count; omit to render a count-less chip
+ * @param {string} [titleKey] - Translation key for the count sentence
+ */
+function renderChipContent(chip, name, count, titleKey) {
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tag-name';
+    nameEl.textContent = name;
+    chip.appendChild(nameEl);
+
+    if (count === null || count === undefined) {
+        return;
+    }
+
+    const countEl = document.createElement('span');
+    countEl.className = 'tag-count';
+    countEl.textContent = formatCount(count);
+    chip.appendChild(countEl);
+
+    const title = formatCountTitle(name, count, titleKey);
+    chip.title = title;
+    // title is unreliable for assistive tech, and the visible name may be
+    // ellipsized, so the accessible name carries the full sentence too.
+    chip.setAttribute('aria-label', title);
+}
 
 export class FilterManager {
     constructor(options = {}) {
@@ -18,6 +55,11 @@ export class FilterManager {
         };
 
         this.currentPage = options.page || document.body.dataset.page || 'loras';
+        // The filter chips count models on every page except Recipes, where the
+        // same sections count recipes.
+        this.countTitleKey = this.currentPage === 'recipes'
+            ? 'recipes.filter.countTitle'
+            : 'header.filter.countTitle';
         const pageState = getCurrentPageState();
 
         this.filters = this.initializeFilters(pageState ? pageState.filters : undefined);
@@ -81,6 +123,11 @@ export class FilterManager {
         // Add click handlers for LoRA availability tags (recipes page only)
         if (this.shouldShowLoraAvailabilityFilter()) {
             this.initializeLoraAvailabilityFilters();
+        }
+
+        // Add click handler for the has-workflow chip (recipes page only)
+        if (this.shouldShowLoraAvailabilityFilter()) {
+            this.initializeHasWorkflowFilter();
         }
 
         // Initialize tag logic toggle
@@ -304,11 +351,7 @@ export class FilterManager {
             tagEl.dataset.tag = tagName;
 
             // Show count only if it's > 0 (known count)
-            if (tag.count > 0) {
-                tagEl.innerHTML = `${tagName} <span class="tag-count">${tag.count}</span>`;
-            } else {
-                tagEl.textContent = tagName;
-            }
+            renderChipContent(tagEl, tagName, tag.count > 0 ? tag.count : null, this.countTitleKey);
 
             // Add click handler to cycle through tri-state filter and automatically apply
             tagEl.addEventListener('click', async () => {
@@ -466,6 +509,29 @@ export class FilterManager {
         });
     }
 
+    initializeHasWorkflowFilter() {
+        const hasWorkflowTags = document.querySelectorAll('.has-workflow-tag');
+        hasWorkflowTags.forEach(tag => {
+            tag.addEventListener('click', async () => {
+                this.filters.hasWorkflow = !this.filters.hasWorkflow;
+                tag.classList.toggle('active', this.filters.hasWorkflow);
+
+                this.updateActiveFiltersCount();
+                await this.applyFilters(false);
+            });
+        });
+
+        // Update selections based on stored filters
+        this.updateHasWorkflowSelection();
+    }
+
+    updateHasWorkflowSelection() {
+        const hasWorkflowTags = document.querySelectorAll('.has-workflow-tag');
+        hasWorkflowTags.forEach(tag => {
+            tag.classList.toggle('active', Boolean(this.filters.hasWorkflow));
+        });
+    }
+
     createBaseModelTags() {
         const baseModelTagsContainer = document.getElementById('baseModelTags');
         if (!baseModelTagsContainer) return;
@@ -515,7 +581,7 @@ export class FilterManager {
             // bucket shows "Unknown" but filters via a dedicated marker).
             const filterValue = model.value ?? model.name;
             tag.dataset.baseModel = filterValue;
-            tag.innerHTML = `${model.name} <span class="tag-count">${model.count}</span>`;
+            renderChipContent(tag, model.name, model.count, this.countTitleKey);
 
             tag.addEventListener('click', async () => {
                 tag.classList.toggle('active');
@@ -587,7 +653,7 @@ export class FilterManager {
                 const tag = document.createElement('div');
                 tag.className = 'filter-tag model-type-tag';
                 tag.dataset.modelType = type;
-                tag.innerHTML = `${MODEL_TYPE_DISPLAY_NAMES[type]} <span class="tag-count">${count}</span>`;
+                renderChipContent(tag, MODEL_TYPE_DISPLAY_NAMES[type], count, this.countTitleKey);
 
                 if (this.filters.modelTypes.includes(type)) {
                     tag.classList.add('active');
@@ -604,6 +670,8 @@ export class FilterManager {
                     }
 
                     this.updateActiveFiltersCount();
+                    // Keep the controls-bar quick switcher in sync (no-op when absent)
+                    window.modelTypeDropdown?.syncFromFilters?.();
                     await this.applyFilters(false);
                 });
 
@@ -733,6 +801,7 @@ export class FilterManager {
         // Update LoRA availability tags if visible on this page
         if (this.shouldShowLoraAvailabilityFilter()) {
             this.updateLoraAvailabilitySelections();
+            this.updateHasWorkflowSelection();
         }
 
         const autoTagEls = document.querySelectorAll('.auto-tag-filter');
@@ -753,6 +822,8 @@ export class FilterManager {
                 tag.classList.remove('active');
             }
         });
+        // Keep the controls-bar quick switcher in sync (no-op when absent)
+        window.modelTypeDropdown?.syncFromFilters?.();
     }
 
     updateActiveFiltersCount() {
@@ -764,7 +835,8 @@ export class FilterManager {
         const baseModelCount = this.filters.baseModel.filter(m => m !== EMPTY_WILDCARD_MARKER).length;
         // Active when at least one availability status is deselected
         const loraAvailabilityCount = this.filters.loraAvailability?.length ?? 0;
-        const totalActiveFilters = baseModelCount + tagFilterCount + autoTagFilterCount + licenseFilterCount + modelTypeFilterCount + loraAvailabilityCount;
+        const hasWorkflowCount = this.filters.hasWorkflow ? 1 : 0;
+        const totalActiveFilters = baseModelCount + tagFilterCount + autoTagFilterCount + licenseFilterCount + modelTypeFilterCount + loraAvailabilityCount + hasWorkflowCount;
 
         if (this.activeFiltersCount) {
             if (totalActiveFilters > 0) {
@@ -806,7 +878,7 @@ export class FilterManager {
         // Call the appropriate manager's load method based on page type
         if (this.currentPage === 'recipes' && window.recipeManager) {
             await window.recipeManager.loadRecipes(true);
-        } else if (this.currentPage === 'loras' || this.currentPage === 'embeddings' || this.currentPage === 'checkpoints') {
+        } else if (this.currentPage === 'loras' || this.currentPage === 'embeddings' || this.currentPage === 'checkpoints' || this.currentPage === 'other') {
             // For models page, reset the page and reload
             await getModelApiClient().loadMoreWithVirtualScroll(true, false);
         }
@@ -862,6 +934,7 @@ export class FilterManager {
             license: {},
             modelTypes: [],
             loraAvailability: [],
+            hasWorkflow: false,
             tagLogic: 'any'
         });
 
@@ -905,7 +978,7 @@ export class FilterManager {
         // Reload data using the appropriate method for the current page
         if (this.currentPage === 'recipes' && window.recipeManager) {
             await window.recipeManager.loadRecipes(true);
-        } else if (this.currentPage === 'loras' || this.currentPage === 'checkpoints' || this.currentPage === 'embeddings') {
+        } else if (this.currentPage === 'loras' || this.currentPage === 'checkpoints' || this.currentPage === 'embeddings' || this.currentPage === 'other') {
             await getModelApiClient().loadMoreWithVirtualScroll(true, true);
         }
 
@@ -955,7 +1028,8 @@ export class FilterManager {
             autoTagCount > 0 ||
             licenseCount > 0 ||
             modelTypeCount > 0 ||
-            loraAvailabilityCount > 0
+            loraAvailabilityCount > 0 ||
+            Boolean(this.filters.hasWorkflow)
         );
     }
 
@@ -969,6 +1043,7 @@ export class FilterManager {
             license: this.shouldShowLicenseFilters() ? this.normalizeLicenseFilters(source.license) : {},
             modelTypes: this.normalizeModelTypeFilters(source.modelTypes),
             loraAvailability: this.normalizeLoraAvailabilityFilters(source.loraAvailability),
+            hasWorkflow: Boolean(source.hasWorkflow),
             tagLogic: source.tagLogic || 'any'
         };
     }
@@ -1082,6 +1157,7 @@ export class FilterManager {
             license: { ...(this.filters.license || {}) },
             modelTypes: [...(this.filters.modelTypes || [])],
             loraAvailability: [...(this.filters.loraAvailability || [])],
+            hasWorkflow: Boolean(this.filters.hasWorkflow),
             tagLogic: this.filters.tagLogic || 'any',
             search: pageState?.filters?.search ?? ''
         };

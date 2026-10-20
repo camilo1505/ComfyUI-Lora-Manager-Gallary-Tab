@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
+import os
 
 from py.utils.metadata_manager import MetadataManager
 from py.utils.models import LoraMetadata
@@ -59,7 +60,7 @@ async def test_load_metadata_payload_restores_file_facts_when_sidecar_missing(
     payload = await MetadataManager.load_metadata_payload(str(model_path))
 
     stat_result = model_path.stat()
-    assert payload["file_path"] == str(model_path)
+    assert payload["file_path"] == str(model_path).replace(os.sep, "/")
     assert payload["file_name"] == "MyModel"
     assert payload["size"] == stat_result.st_size
     assert payload["modified"] == stat_result.st_mtime
@@ -174,7 +175,7 @@ async def test_load_metadata_payload_tolerates_missing_model_file(tmp_path) -> N
     """A nonexistent model file must not crash payload loading."""
     missing_path = tmp_path / "Ghost.safetensors"
     payload = await MetadataManager.load_metadata_payload(str(missing_path))
-    assert payload["file_path"] == str(missing_path)
+    assert payload["file_path"] == str(missing_path).replace(os.sep, "/")
     assert "file_name" not in payload
     assert "size" not in payload
     assert "modified" not in payload
@@ -212,3 +213,45 @@ async def test_self_healed_sidecar_is_parseable(tmp_path) -> None:
     assert metadata.file_name == "MyModel"
     assert metadata.model_name == "My Model"
     assert metadata.sha256 == "abc123"
+
+
+@pytest.mark.asyncio
+async def test_provenance_fields_survive_a_load_save_round_trip(tmp_path) -> None:
+    """Non-underscore extras must persist; underscore keys are ephemeral.
+
+    Regression test for `llm_confidence`: it was written as `_llm_confidence`,
+    which `BaseModelMetadata.from_dict()` drops (and `to_dict()` strips), so the
+    value was erased by the next metadata write and was invisible to
+    `read_metadata()`.  The enrichment evaluation harness depends on it.
+    """
+    model_path = tmp_path / "Model.safetensors"
+    model_path.write_bytes(b"fake model data")
+    metadata_path = tmp_path / "Model.metadata.json"
+
+    payload = {
+        "file_path": str(model_path),
+        "file_name": "Model",
+        "model_name": "Model",
+        "sha256": "deadbeef",
+        "base_model": "Krea 2",
+        "preview_url": "",
+        "metadata_source": "agent:enrich_hf_metadata",
+        "llm_enriched_at": "2026-01-01T00:00:00+00:00",
+        "llm_confidence": "medium",
+        "_llm_confidence": "medium",
+    }
+    assert await MetadataManager.save_metadata(str(model_path), payload) is True
+
+    # A read must surface the supported key...
+    loaded = await MetadataManager.load_metadata_payload(str(model_path))
+    assert loaded["llm_confidence"] == "medium"
+    assert loaded["metadata_source"] == "agent:enrich_hf_metadata"
+
+    # ...but the underscore alias is intentionally not persisted.
+    assert "_llm_confidence" not in loaded
+
+    # Re-saving what we read must not lose the confidence.
+    assert await MetadataManager.save_metadata(str(model_path), loaded) is True
+    saved = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert saved["llm_confidence"] == "medium"
+    assert saved["llm_enriched_at"] == "2026-01-01T00:00:00+00:00"

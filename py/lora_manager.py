@@ -37,6 +37,7 @@ from .services.websocket_manager import ws_manager
 from .services.example_images_cleanup_service import ExampleImagesCleanupService
 from .middleware.csp_middleware import relax_csp_for_remote_media
 from .middleware.error_middleware import api_json_error
+from .utils.gc_utils import freeze_long_lived_objects
 
 logger = logging.getLogger(__name__)
 
@@ -222,6 +223,7 @@ class LoraManager:
             lora_scanner = await ServiceRegistry.get_lora_scanner()
             checkpoint_scanner = await ServiceRegistry.get_checkpoint_scanner()
             embedding_scanner = await ServiceRegistry.get_embedding_scanner()
+            other_scanner = await ServiceRegistry.get_other_scanner()
 
             # Initialize recipe scanner if needed
             recipe_scanner = await ServiceRegistry.get_recipe_scanner()
@@ -238,6 +240,10 @@ class LoraManager:
                 asyncio.create_task(
                     embedding_scanner.initialize_in_background(),
                     name="embedding_cache_init",
+                ),
+                asyncio.create_task(
+                    other_scanner.initialize_in_background(),
+                    name="other_cache_init",
                 ),
                 asyncio.create_task(
                     recipe_scanner.initialize_in_background(), name="recipe_cache_init"
@@ -285,6 +291,11 @@ class LoraManager:
             # Wait for all scanner initialization tasks to complete
             await asyncio.gather(*init_tasks, return_exceptions=True)
 
+            # The caches are hydrated now: move their long-lived objects out of
+            # GC tracking so ComfyUI's post-prompt gc.collect() no longer walks
+            # them on every prompt (issue #1147).
+            freeze_long_lived_objects("cache initialization")
+
             logger.debug(
                 "LoRA Manager: Scanner initialization completed, starting post-initialization tasks..."
             )
@@ -331,6 +342,7 @@ class LoraManager:
             all_roots.update(config.loras_roots)
             all_roots.update(config.base_models_roots or [])
             all_roots.update(config.embeddings_roots or [])
+            all_roots.update(config.other_roots or [])
 
             total_deleted = 0
             total_size_freed = 0
@@ -463,18 +475,11 @@ class LoraManager:
             # Cancel any in-flight scanner initialization tasks so thread-pool
             # workers (e.g. _initialize_cache_sync) can break out of their loops
             # when the server shuts down (e.g. Ctrl+C on WSL).
-            for name in ("lora_scanner", "checkpoint_scanner", "embedding_scanner"):
+            for name in ("lora_scanner", "checkpoint_scanner", "embedding_scanner", "other_scanner"):
                 scanner = ServiceRegistry.get_service_sync(name)
                 if scanner is not None and hasattr(scanner, "cancel_task"):
                     scanner.cancel_task()
                     logger.debug("LoRA Manager: Cancelled %s", name)
-
-            # Close shared aiohttp sessions to avoid "Unclosed client session" warnings
-            try:
-                from py.routes.handlers.hf_handlers import close_hf_api_session
-                await close_hf_api_session()
-            except Exception as exc:
-                logger.debug("Error closing HF API session: %s", exc)
 
         except Exception as e:
             logger.error(f"Error during cleanup: {e}", exc_info=True)

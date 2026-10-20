@@ -25,7 +25,11 @@ from ...services.connectivity_guard import (
     is_expected_offline_error,
 )
 from ...services.metadata_sync_service import MetadataSyncService
-from ...services.model_file_service import ModelMoveService
+from ...services.model_file_service import (
+    ModelMoveService,
+    normalize_relative_folder,
+)
+from ...services.model_scanner import ReconcileScope
 from ...services.preview_asset_service import PreviewAssetService
 from ...services.service_registry import ServiceRegistry
 from ...services.settings_manager import SettingsManager, get_settings_manager
@@ -37,15 +41,23 @@ from ...services.use_cases import (
     DownloadModelEarlyAccessError,
     DownloadModelUseCase,
     DownloadModelValidationError,
+    FilenameTemplateUseCase,
     MetadataRefreshProgressReporter,
 )
 from ...services.websocket_manager import WebSocketManager
-from ...services.websocket_progress_callback import WebSocketProgressCallback
+from ...services.websocket_progress_callback import (
+    WebSocketFilenameTemplateProgressCallback,
+    WebSocketProgressCallback,
+)
 from ...services.download_queue_service import DownloadQueueService
 from ...services.errors import RateLimitError, ResourceNotFoundError
 from ...utils.civitai_utils import resolve_license_payload
 from ...utils.file_utils import calculate_sha256
 from ...utils.metadata_manager import MetadataManager
+from ...utils.paid_access import is_early_access_deadline_active
+from ...utils.root_paths import normalize_root_identity
+from ...utils.sidecar_paths import get_metadata_path
+from ...utils.url_utils import relative_root_prefix
 
 LICENSE_FIELDS = (
     "allowNoCredit",
@@ -90,6 +102,7 @@ class ModelPageView:
         settings_service: SettingsManager,
         server_i18n,
         logger: logging.Logger,
+        page_context_provider: Callable[[web.Request], Dict[str, Any]] | None = None,
     ) -> None:
         self._template_env = template_env
         self._template_name = template_name
@@ -97,6 +110,7 @@ class ModelPageView:
         self._settings = settings_service
         self._server_i18n = server_i18n
         self._logger = logger
+        self._page_context_provider = page_context_provider
 
     def _load_supporters(self) -> dict[str, Any]:
         """Load supporters data from JSON file."""
@@ -198,6 +212,7 @@ class ModelPageView:
                 "version": self._get_app_version(),
                 "provider_presets_json": json.dumps(PROVIDER_PRESETS),
                 "provider_models_json": "{}",
+                "rel_prefix": relative_root_prefix(request.path),
             }
 
             if not is_initializing:
@@ -209,6 +224,16 @@ class ModelPageView:
                 except Exception as cache_error:  # pragma: no cover - logging path
                     self._logger.error("Error loading cache data: %s", cache_error)
                     template_context["is_initializing"] = True
+
+            if self._page_context_provider is not None:
+                try:
+                    extra_context = self._page_context_provider(request)
+                    if isinstance(extra_context, dict):
+                        template_context.update(extra_context)
+                except Exception as context_error:  # pragma: no cover - logging path
+                    self._logger.error(
+                        "Error building page context: %s", context_error
+                    )
 
             rendered = self._template_env.get_template(self._template_name).render(
                 **template_context
@@ -368,7 +393,6 @@ class ModelListingHandler:
             == "true",
             "tags": request.query.get("search_tags", "false").lower() == "true",
             "creator": request.query.get("search_creator", "false").lower() == "true",
-            "hash": request.query.get("search_hash", "false").lower() == "true",
             "recursive": request.query.get("recursive", "true").lower() == "true",
         }
 
@@ -658,7 +682,7 @@ class ModelManagementHandler:
                     status=400,
                 )
 
-            metadata_path = os.path.splitext(file_path)[0] + ".metadata.json"
+            metadata_path = get_metadata_path(file_path)
             local_metadata = await self._metadata_sync.load_local_metadata(
                 metadata_path
             )
@@ -1120,8 +1144,61 @@ class ModelQueryHandler:
     async def scan_models(self, request: web.Request) -> web.Response:
         try:
             full_rebuild = request.query.get("full_rebuild", "false").lower() == "true"
-            await self._service.scan_models(
-                force_refresh=True, rebuild_cache=full_rebuild
+            requested_roots = [
+                value for value in request.query.getall("roots", []) if value
+            ]
+            raw_folder = (request.query.get("folder") or "").strip()
+            if (requested_roots or raw_folder) and full_rebuild:
+                return web.json_response(
+                    {
+                        "error": "Scoped scans are not supported with "
+                        "full_rebuild=true; a full rebuild always walks every root"
+                    },
+                    status=400,
+                )
+
+            folder = None
+            if raw_folder:
+                try:
+                    folder = normalize_relative_folder(raw_folder)
+                except ValueError as exc:
+                    return web.json_response({"error": str(exc)}, status=400)
+
+            # A drive that was plugged in after startup must be scannable without
+            # a restart, and callers that never open the Refresh menu (the browser
+            # extension) have no other chance to admit it.
+            self._service.refresh_model_roots()
+
+            if requested_roots:
+                configured = self._service.get_model_roots()
+                # Compare by identity, not by string: callers may pass the host's
+                # own spelling of a root (backslashes or a differently cased drive
+                # letter on Windows, as settings.json and ComfyUI show it), which
+                # names the same directory the live list holds forward-slashed.
+                known_roots = {
+                    normalize_root_identity(root) for root in configured
+                }
+                unknown = [
+                    root
+                    for root in requested_roots
+                    if normalize_root_identity(root) not in known_roots
+                ]
+                if unknown:
+                    return web.json_response(
+                        {"error": "Unknown model root(s)", "roots": unknown}, status=400
+                    )
+
+            # `folder` alone means "this relative folder in every root that has
+            # it" — the sidebar's unified tree carries no root identity.
+            scope = None
+            if requested_roots or folder:
+                scope = ReconcileScope(
+                    roots=tuple(requested_roots) if requested_roots else None,
+                    folder=folder,
+                )
+
+            summary = await self._service.scan_models(
+                force_refresh=True, rebuild_cache=full_rebuild, scope=scope
             )
             _broadcast_models_changed()
             if self._service.scanner.is_cancelled():
@@ -1131,12 +1208,13 @@ class ModelQueryHandler:
                         "message": f"{self._service.model_type.capitalize()} scan cancelled",
                     }
                 )
-            return web.json_response(
-                {
-                    "status": "success",
-                    "message": f"{self._service.model_type.capitalize()} scan completed",
-                }
-            )
+            payload: Dict[str, Any] = {
+                "status": "success",
+                "message": f"{self._service.model_type.capitalize()} scan completed",
+            }
+            if summary:
+                payload.update(summary)
+            return web.json_response(payload)
         except Exception as exc:
             self._logger.error(
                 "Error scanning %ss: %s", self._service.model_type, exc, exc_info=True
@@ -1145,8 +1223,18 @@ class ModelQueryHandler:
 
     async def get_model_roots(self, request: web.Request) -> web.Response:
         try:
+            # A drive plugged in after startup is admitted here, so the menu shows
+            # it as a normal row instead of "unavailable" until the next restart.
+            self._service.refresh_model_roots()
             roots = self._service.get_model_roots()
-            return web.json_response({"success": True, "roots": roots})
+            try:
+                root_details = self._service.describe_model_roots()
+            except Exception as exc:  # pragma: no cover - defensive
+                self._logger.debug("Root details unavailable: %s", exc)
+                root_details = []
+            return web.json_response(
+                {"success": True, "roots": roots, "root_details": root_details}
+            )
         except Exception as exc:
             self._logger.error(
                 "Error getting %s roots: %s",
@@ -1742,7 +1830,8 @@ class ModelDownloadHandler:
             payload = await request.json()
             result = await self._download_use_case.execute(payload)
             if not result.get("success", False):
-                return web.json_response(result, status=500)
+                status = 429 if result.get("reason") == "rate_limited" else 500
+                return web.json_response(result, status=status)
             return web.json_response(result)
         except DownloadModelValidationError as exc:
             return web.json_response({"success": False, "error": str(exc)}, status=400)
@@ -1800,7 +1889,8 @@ class ModelDownloadHandler:
             mock_request = type("MockRequest", (), {"json": lambda self=None: future})()
             result = await self._download_use_case.execute(data)
             if not result.get("success", False):
-                return web.json_response(result, status=500)
+                status = 429 if result.get("reason") == "rate_limited" else 500
+                return web.json_response(result, status=status)
             return web.json_response(result)
         except DownloadModelValidationError as exc:
             return web.json_response({"success": False, "error": str(exc)}, status=400)
@@ -1898,6 +1988,11 @@ class ModelDownloadHandler:
                 response_payload["status"] = status
                 if "message" in progress_data:
                     response_payload["message"] = progress_data["message"]
+                # Post-transfer stage (indexing / source metadata); polling
+                # consumers need it to tell "working" from "stuck".
+                for field in ("stage", "platform"):
+                    if field in progress_data:
+                        response_payload[field] = progress_data[field]
             elif status is None and "message" in progress_data:
                 response_payload["message"] = progress_data["message"]
 
@@ -2276,8 +2371,8 @@ class ModelCivitaiHandler:
             metadata_provider = await self._metadata_provider_factory()
             try:
                 response = await metadata_provider.get_model_versions(model_id)
-            except ResourceNotFoundError:
-                return web.Response(status=404, text="Model not found")
+            except ResourceNotFoundError as exc:
+                return web.json_response({"error": str(exc)}, status=404)
             if not response or not response.get("modelVersions"):
                 return web.Response(status=404, text="Model not found")
 
@@ -2308,7 +2403,12 @@ class ModelCivitaiHandler:
                     exc,
                 )
 
+            # Model-level tags travel with each version so the download
+            # location step can preview download_root_rules tag matches.
+            model_tags = response.get("tags") or []
+
             for version in versions:
+                version["modelTags"] = model_tags
                 version_id = None
                 version_id_raw = version.get("id")
                 if version_id_raw is not None:
@@ -2467,6 +2567,139 @@ class ModelMoveHandler:
         self._move_service = move_service
         self._logger = logger
 
+    async def create_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            result = await self._move_service.create_folder(folder_path)
+            status = 200 if result.get("success") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error creating folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def resolve_folder(self, request: web.Request) -> web.Response:
+        """Resolve a library-relative folder onto the roots that hold it.
+
+        The unified folder tree is a merged relative-path namespace, so the
+        client cannot tell which root a node came from; this is what lets the
+        sidebar act on the directory the user actually sees.
+        """
+        try:
+            folder = request.query.get("folder", "")
+            result = self._move_service.resolve_folder(folder)
+            status = 200 if result.get("success") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error resolving folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def delete_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            dry_run = bool(data.get("dry_run"))
+            result = await self._move_service.delete_folder(
+                folder_path, dry_run=dry_run
+            )
+            if result.get("success"):
+                if not dry_run:
+                    _broadcast_models_changed()
+                return web.json_response(result, status=200)
+
+            # "not_empty" / "busy" are conflicts between the tree the client
+            # rendered and the on-disk truth; everything else is a bad request.
+            code = result.get("code")
+            status = 409 if code in ("not_empty", "busy") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error deleting folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def forget_folder(self, request: web.Request) -> web.Response:
+        """Drop the records of a folder that no longer exists on disk (#1145).
+
+        The sidebar's delete flow reaches this when the node it holds maps to no
+        directory any more: there is nothing to delete, so the only cleanup left
+        is forgetting the folder entry and the cached models under it.
+        """
+        data: Dict[str, Any] = {}
+        if request.method == "POST":
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+        folder = str(data.get("folder") or request.query.get("folder") or "").strip()
+        if not folder:
+            return web.json_response(
+                {"success": False, "error": "Folder is required"}, status=400
+            )
+
+        try:
+            result = await self._move_service.forget_folder(folder)
+            if result.get("success"):
+                _broadcast_models_changed()
+                return web.json_response(result, status=200)
+
+            # `exists` is a conflict between the tree the client rendered and the
+            # on-disk truth: the folder is still there, so it must be deleted.
+            status = 409 if result.get("code") == "exists" else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error forgetting folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def rename_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            new_name = data.get("new_name")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            if not new_name:
+                return web.json_response(
+                    {"success": False, "error": "New folder name is required"}, status=400
+                )
+            result = await self._move_service.rename_folder(folder_path, new_name)
+            if result.get("success"):
+                if result.get("renamed"):
+                    _broadcast_models_changed()
+                return web.json_response(result, status=200)
+
+            # A name collision or a staged delete inside the subtree is a
+            # conflict with the state the client rendered, not a bad request.
+            code = result.get("code")
+            status = 409 if code in ("target_exists", "busy") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error renaming folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
     async def move_model(self, request: web.Request) -> web.Response:
         try:
             data = await request.json()
@@ -2588,6 +2821,71 @@ class ModelAutoOrganizeHandler:
             self._logger.error(
                 "Error getting auto-organize progress: %s", exc, exc_info=True
             )
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+
+class ModelFilenameTemplateHandler:
+    """Apply the configured filename template to existing library models."""
+
+    def __init__(
+        self,
+        *,
+        use_case: FilenameTemplateUseCase,
+        progress_callback: WebSocketFilenameTemplateProgressCallback,
+        logger: logging.Logger,
+    ) -> None:
+        self._use_case = use_case
+        self._progress_callback = progress_callback
+        self._logger = logger
+
+    async def apply_filename_template(self, request: web.Request) -> web.Response:
+        try:
+            file_paths = None
+            if request.method == "POST":
+                try:
+                    data = await request.json()
+                    file_paths = data.get("file_paths")
+                except Exception:  # pragma: no cover - permissive path
+                    pass
+            else:
+                # GET variant (browser extension is GET-only): comma-separated
+                # file_paths query parameter.
+                raw_file_paths = request.query.get("file_paths")
+                if raw_file_paths:
+                    file_paths = [
+                        path.strip()
+                        for path in raw_file_paths.split(",")
+                        if path.strip()
+                    ]
+
+            result = await self._use_case.execute(
+                file_paths=file_paths,
+                progress_callback=self._progress_callback,
+            )
+            _broadcast_models_changed()
+            return web.json_response(result.to_dict())
+        except AutoOrganizeInProgressError:
+            return web.json_response(
+                {
+                    "success": False,
+                    "error": "Another library operation is already running. Please wait for it to complete.",
+                },
+                status=409,
+            )
+        except Exception as exc:
+            self._logger.error(
+                "Error in apply_filename_template: %s", exc, exc_info=True
+            )
+            try:
+                await self._progress_callback.on_progress(
+                    {
+                        "type": "filename_template_progress",
+                        "status": "error",
+                        "error": str(exc),
+                    }
+                )
+            except Exception:  # pragma: no cover - defensive reporting
+                pass
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
 
@@ -2767,6 +3065,20 @@ class ModelUpdateHandler:
 
         same_base_scope = self._uses_same_base_update_scope()
 
+        # Gate/price transitions are reported for every refreshed model, not only
+        # for the ones that qualify as updates: "this version became free" matters
+        # for a version the user already has, which never shows up as an update.
+        events = []
+        for record in records.values():
+            for event in getattr(record, "events", None) or []:
+                events.append(
+                    {
+                        "modelId": record.model_id,
+                        "modelType": record.model_type,
+                        **event,
+                    }
+                )
+
         serialized_records = []
         for record in records.values():
             has_update_fn = getattr(record, "has_update", None)
@@ -2788,6 +3100,7 @@ class ModelUpdateHandler:
             {
                 "success": True,
                 "records": serialized_records,
+                "events": events,
             }
         )
 
@@ -3217,6 +3530,7 @@ class ModelUpdateHandler:
                 hide_early_access=hide_early_access,
                 hide_paid=hide_paid,
             ),
+            "events": list(getattr(record, "events", None) or []),
             "versions": [
                 self._serialize_version(version, context.get(version.version_id))
                 for version in record.versions
@@ -3240,16 +3554,11 @@ class ModelUpdateHandler:
         if getattr(version, "is_paid", False) and not version.early_access_ends_at:
             is_early_access = False
         elif version.early_access_ends_at:
-            try:
-                from datetime import datetime, timezone
-
-                ea_date = datetime.fromisoformat(
-                    version.early_access_ends_at.replace("Z", "+00:00")
-                )
-                is_early_access = ea_date > datetime.now(timezone.utc)
-            except (ValueError, AttributeError):
-                # If date parsing fails, treat as active EA (conservative)
-                is_early_access = True
+            # Shared with the update service and the download gate so the badge,
+            # the update filter and the download warning cannot disagree.
+            is_early_access = is_early_access_deadline_active(
+                version.early_access_ends_at
+            )
         elif getattr(version, "is_early_access", False):
             # Fallback to basic EA flag from bulk API
             is_early_access = True
@@ -3276,6 +3585,15 @@ class ModelUpdateHandler:
             "usageControl": version.usage_control,
             "isPaid": bool(getattr(version, "is_paid", False)),
             "paidAccess": paid_access_payload,
+            # Set when a version that used to be gated became free, so the UI can
+            # keep showing "Free" long after the transition.
+            "gateLapsedAt": getattr(version, "gate_lapsed_at", None),
+            "priceBuzz": getattr(version, "price_buzz", None),
+            "listPriceBuzz": getattr(version, "list_price_buzz", None),
+            "generationPriceBuzz": getattr(version, "generation_price_buzz", None),
+            "acceptsBlueBuzz": bool(getattr(version, "accepts_blue_buzz", False)),
+            "priceSaleEndsAt": getattr(version, "price_sale_ends_at", None),
+            "priceCheckedAt": getattr(version, "price_checked_at", None),
             "filePath": context.get("file_path"),
             "fileName": context.get("file_name"),
             # Weight-file variant count (None when unknown); lets the UI hide
@@ -3358,6 +3676,7 @@ class ModelHandlerSet:
     civitai: ModelCivitaiHandler
     move: ModelMoveHandler
     auto_organize: ModelAutoOrganizeHandler
+    filename_template: ModelFilenameTemplateHandler
     updates: ModelUpdateHandler
 
     def to_route_mapping(
@@ -3417,8 +3736,14 @@ class ModelHandlerSet:
             "get_civitai_model_by_hash": self.civitai.get_civitai_model_by_hash,
             "move_model": self.move.move_model,
             "move_models_bulk": self.move.move_models_bulk,
+            "create_folder": self.move.create_folder,
+            "resolve_folder": self.move.resolve_folder,
+            "delete_folder": self.move.delete_folder,
+            "forget_folder": self.move.forget_folder,
+            "rename_folder": self.move.rename_folder,
             "auto_organize_models": self.auto_organize.auto_organize_models,
             "get_auto_organize_progress": self.auto_organize.get_auto_organize_progress,
+            "apply_filename_template": self.filename_template.apply_filename_template,
             "get_model_notes": self.query.get_model_notes,
             "get_model_preview_url": self.query.get_model_preview_url,
             "get_model_civitai_url": self.query.get_model_civitai_url,

@@ -59,7 +59,10 @@ body.sticky-controls .sticky-topbar {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto; /* Push to the right */
+    /* Push to the right of the row. Because it is also the flex item that is
+       allowed to drop to a second row, an auto margin keeps it right-aligned on
+       either row — no width: 100% / viewport breakpoint needed. */
+    margin-left: auto;
 }
 
 .actions {
@@ -67,7 +70,11 @@ body.sticky-controls .sticky-topbar {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
-    flex-wrap: nowrap;
+    /* Wrap only when the controls genuinely cannot fit, instead of at a fixed
+       viewport width. Viewport-based wrapping wasted space on high-DPI displays
+       (e.g. a 2560px monitor at 200% scaling reports a ~1280px CSS viewport even
+       when the window is maximized). */
+    flex-wrap: wrap;
     width: 100%;
 }
 
@@ -75,7 +82,11 @@ body.sticky-controls .sticky-topbar {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    flex-wrap: nowrap;
+    /* Let the group shrink rather than overflow so .controls-right only wraps
+       when it really has to. */
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 /* Action button styling */
@@ -84,7 +95,9 @@ body.sticky-controls .sticky-topbar {
 }
 
 .control-group button {
-    min-width: 100px;
+    /* Keeps the toolbar visually even without forcing the row to overflow (the
+       old 100px floor pushed the total past the container on wide screens). */
+    min-width: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -146,7 +159,7 @@ body.sticky-controls .sticky-topbar {
 
 .control-group button.favorite-filter.active {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .control-group button.favorite-filter i {
@@ -161,17 +174,17 @@ body.sticky-controls .sticky-topbar {
 
 .control-group button.update-filter.active {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .control-group button.update-filter.active i {
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .update-filter-group .dropdown-main.update-filter.active + .dropdown-toggle {
     background: var(--lora-accent);
     border-color: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .update-filter-group .dropdown-main.update-filter.active + .dropdown-toggle i {
@@ -181,7 +194,7 @@ body.sticky-controls .sticky-topbar {
 /* Active state for buttons that can be toggled */
 .control-group button.active {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     border-color: var(--lora-accent);
 }
 
@@ -338,14 +351,17 @@ body.sticky-controls .sticky-topbar {
    sizes to the currently selected text only; the dropdown menu sizes to
    its content independently. The native <select> is kept in the DOM
    (visually hidden) so existing JS that reads/writes `.value` / `.disabled`
-   and dynamically adds/removes <option>s keeps working. */
+   and dynamically adds/removes <option>s keeps working. The model-type
+   dropdown (.model-type-*) shares these styles — same trigger/menu look. */
 
-.sort-dropdown-group {
+.sort-dropdown-group,
+.model-type-dropdown-group {
     position: relative;
     display: flex;
 }
 
-.sort-trigger {
+.sort-trigger,
+.model-type-trigger {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -362,8 +378,14 @@ body.sticky-controls .sticky-topbar {
     box-shadow: var(--shadow-xs);
 }
 
+.model-type-trigger {
+    min-width: 90px;
+}
+
 .sort-trigger:hover,
-.sort-trigger:focus-visible {
+.sort-trigger:focus-visible,
+.model-type-trigger:hover,
+.model-type-trigger:focus-visible {
     border-color: var(--lora-accent);
     background: var(--bg-color);
     transform: translateY(-1px);
@@ -371,28 +393,33 @@ body.sticky-controls .sticky-topbar {
     outline: none;
 }
 
-.sort-trigger:active {
+.sort-trigger:active,
+.model-type-trigger:active {
     transform: translateY(0);
     box-shadow: var(--shadow-xs);
 }
 
-.sort-trigger__label {
+.sort-trigger__label,
+.model-type-trigger__label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.sort-trigger__caret {
+.sort-trigger__caret,
+.model-type-trigger__caret {
     opacity: 0.8;
     transition: transform var(--transition-base);
     flex-shrink: 0;
 }
 
-.sort-dropdown-group.active .sort-trigger__caret {
+.sort-dropdown-group.active .sort-trigger__caret,
+.model-type-dropdown-group.active .model-type-trigger__caret {
     transform: rotate(180deg);
 }
 
-.sort-dropdown-group.active .sort-trigger {
+.sort-dropdown-group.active .sort-trigger,
+.model-type-dropdown-group.active .model-type-trigger {
     border-color: var(--lora-accent);
     box-shadow: 0 0 0 2px color-mix(in oklch, var(--lora-accent) 15%, transparent);
 }
@@ -410,7 +437,8 @@ body.sticky-controls .sticky-topbar {
 
 /* Dropdown menu — sizes to its content, independent of trigger width.
    Inherits base .dropdown-menu styling; capped for very long i18n text. */
-.sort-dropdown-menu {
+.sort-dropdown-menu,
+.model-type-dropdown-menu {
     min-width: max-content;
     max-width: 320px;
     width: max-content;
@@ -433,7 +461,8 @@ body.sticky-controls .sticky-topbar {
 }
 
 /* Option items */
-.sort-dropdown-group .sort-option {
+.sort-dropdown-group .sort-option,
+.model-type-dropdown-group .model-type-option {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -444,7 +473,8 @@ body.sticky-controls .sticky-topbar {
     white-space: nowrap;
 }
 
-.sort-dropdown-group .sort-option::before {
+.sort-dropdown-group .sort-option::before,
+.model-type-dropdown-group .model-type-option::before {
     content: '';
     width: 14px;
     flex-shrink: 0;
@@ -452,16 +482,19 @@ body.sticky-controls .sticky-topbar {
     font-weight: 700;
 }
 
-.sort-dropdown-group .sort-option:hover {
+.sort-dropdown-group .sort-option:hover,
+.model-type-dropdown-group .model-type-option:hover {
     background-color: color-mix(in oklch, var(--lora-accent) 10%, transparent);
 }
 
-.sort-dropdown-group .sort-option.is-selected {
+.sort-dropdown-group .sort-option.is-selected,
+.model-type-dropdown-group .model-type-option.is-selected {
     color: var(--lora-accent);
     font-weight: 600;
 }
 
-.sort-dropdown-group .sort-option.is-selected::before {
+.sort-dropdown-group .sort-option.is-selected::before,
+.model-type-dropdown-group .model-type-option.is-selected::before {
     content: '\2713';
     color: var(--lora-accent);
 }
@@ -527,7 +560,7 @@ body.sticky-controls .sticky-topbar {
 
 .back-to-top:hover {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
@@ -627,49 +660,42 @@ body.sticky-controls .sticky-topbar {
     text-align: center;
 }
 
-/* Intermediate breakpoint: wrap controls-right to prevent overflow */
+/* Intermediate breakpoint: tighten the controls so the whole bar still fits on
+   one row at common laptop/high-DPI widths. The buttons are allowed to shrink to
+   their content (min-width: 0) here, which is what reclaims the space the old
+   100px floor plus a forced wrap used to waste. .controls-right is deliberately
+   NOT forced onto its own row: it stays inline while it fits and only drops to a
+   second row (staying right-aligned through its auto margin) when it does not. */
 @media (max-width: 1500px) {
-    .actions {
-        flex-wrap: wrap;
-        gap: var(--space-2);
-    }
-
     .action-buttons {
-        flex-wrap: wrap;
         gap: var(--space-1);
     }
 
-    .controls-right {
-        width: 100%;
-        justify-content: flex-end;
-        margin-top: 8px;
-        padding-left: 0;
+    .control-group button {
+        min-width: 0;
+        padding: 4px 8px;
     }
 
-    /* Reduce button sizes to fit better */
-    .control-group button {
-        min-width: 80px;
-        padding: 4px 8px;
-        font-size: 0.8em;
+    .control-group select {
+        min-width: 0;
     }
 }
 
 @media (max-width: 768px) {
     .actions {
-        flex-wrap: wrap;
-        gap: var(--space-1);
+        gap: var(--space-2);
     }
-    
+
     .action-buttons {
-        flex-wrap: wrap;
-        gap: var(--space-1);
         width: 100%;
     }
-    
+
+    /* Narrow screens: let the right-hand group wrap below the buttons, still
+       right-aligned. */
     .controls-right {
-        width: 100%;
+        flex-wrap: wrap;
         justify-content: flex-end;
-        margin-top: 8px;
+        gap: var(--space-1);
     }
 
     .control-group button:hover {
@@ -693,4 +719,68 @@ body.sticky-controls .sticky-topbar {
     .controls {
         padding: 10px 0;
     }
+}
+
+/* Refresh dropdown: per-root scan scope (issue #1108). The list can hold one
+   entry per configured model root, so it scrolls instead of growing past the
+   viewport. Offline roots stay clickable (clicking explains the state) and are
+   only visually de-emphasised — unlike .dropdown-item.disabled, which swallows
+   the click via pointer-events: none. */
+.dropdown-separator {
+    height: 1px;
+    margin: 5px 0;
+    background-color: var(--border-color);
+}
+
+.dropdown-section-title {
+    padding: 4px 15px 2px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+.dropdown-scope-list {
+    max-height: 45vh;
+    overflow-y: auto;
+}
+
+.scan-root-item.is-offline {
+    cursor: default;
+    opacity: 0.6;
+}
+
+/* Label and count as two slots instead of label + floated count: the label
+   column absorbs the row's spare width (so counts still line up on the right)
+   and ellipsizes rather than pushing the count out of the menu. */
+.scan-root-item {
+    display: flex;
+    align-items: center;
+}
+
+.scan-root-item i {
+    flex-shrink: 0;
+}
+
+.scan-root-label {
+    flex: 1;
+    min-width: 0;
+    margin-right: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scan-root-count,
+.scan-root-offline {
+    margin-left: 16px;
+    font-size: 0.9em;
+    opacity: 0.7;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.scan-root-item.is-offline .scan-root-offline {
+    opacity: 0.9;
 }

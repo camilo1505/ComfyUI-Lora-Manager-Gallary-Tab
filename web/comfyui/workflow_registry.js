@@ -1,6 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { getAllGraphNodes, getNodeReference, getNodeFromGraph, getChildGraphs, chainCallback, getLinkFromGraph } from "./utils.js";
+import { lmUrl } from "./base_path.js";
+import { getAllGraphNodes, getNodeReference, getNodeFromGraph, getChildGraphs, chainCallback, getLinkFromGraph, interceptModeChange } from "./utils.js";
 import { ensureLmStyles } from "./lm_styles_loader.js";
 
 const DEBOUNCE_DELAY = 500;
@@ -243,15 +244,7 @@ app.registerExtension({
 
         let hooksInstalled = 0;
 
-        const scheduleRefresh = (source) => {
-            if (this._debounceTimer != null) {
-                clearTimeout(this._debounceTimer);
-            }
-            this._debounceTimer = setTimeout(() => {
-                this._debounceTimer = null;
-                this.refreshRegistry();
-            }, DEBOUNCE_DELAY);
-        };
+        const scheduleRefresh = (source) => this._scheduleRefresh(source);
 
         try {
             chainCallback(graph, "onNodeAdded", () => scheduleRefresh("onNodeAdded"));
@@ -312,6 +305,30 @@ app.registerExtension({
         this._log("%s proactive hooks installed on graph", hooksInstalled);
     },
 
+    _scheduleRefresh(source) {
+        if (this._debounceTimer != null) {
+            clearTimeout(this._debounceTimer);
+        }
+        this._debounceTimer = setTimeout(() => {
+            this._debounceTimer = null;
+            this.refreshRegistry();
+        }, DEBOUNCE_DELAY);
+    },
+
+    /**
+     * Observe mute/bypass toggles on a candidate node so the registry's
+     * `mode` field (consumed by the web UI's enabled-filter) stays fresh.
+     * interceptModeChange supports multiple listeners per node, so this
+     * composes with the Lora Loader's own mode observation.
+     */
+    _ensureModeHook(node) {
+        if (!node || node.__lmRegistryModeHooked) {
+            return;
+        }
+        node.__lmRegistryModeHooked = true;
+        interceptModeChange(node, () => this._scheduleRefresh("mode"));
+    },
+
     _log(format, ...args) {
         const ts = new Date().toISOString().slice(11, 23);
         let msg = format;
@@ -341,6 +358,7 @@ app.registerExtension({
                 const hasTargetWidget = widgetNames.some((name) => TARGET_WIDGET_NAMES.has(name));
                 const hasTextWidget = TEXT_CAPABLE_CLASSES.has(node.comfyClass);
                 const markerRole = node.properties?.lm_marker_role ?? null;
+                const excludeSend = node.properties?.lm_exclude_send === true;
 
                 // A prompt-capable node whose text widget is wired to another
                 // node cannot have its text changed via the widget — execution
@@ -359,6 +377,8 @@ app.registerExtension({
                     continue;
                 }
 
+                this._ensureModeHook(node);
+
                 const graphName =
                     typeof graph?.name === "string" && graph.name.trim() ? graph.name : null;
 
@@ -372,6 +392,7 @@ app.registerExtension({
                     comfy_class: node.comfyClass,
                     mode: node.mode,
                     marker_role: markerRole,
+                    exclude_send: excludeSend,
                     capabilities: {
                         supports_lora: supportsLora,
                         has_text_widget: hasTextWidget && !textWidgetConnected,
@@ -389,14 +410,14 @@ app.registerExtension({
             // text_widget_connected is part of the fingerprint so that link
             // connect/disconnect changes re-register the affected nodes.
             const fingerprint = JSON.stringify(
-                workflowNodes.map(n => `${n.graph_id}:${n.node_id}|${n.marker_role ?? ""}|${n.mode ?? 0}|${n.capabilities.text_widget_connected}`).sort()
+                workflowNodes.map(n => `${n.graph_id}:${n.node_id}|${n.marker_role ?? ""}|${n.exclude_send ? 1 : 0}|${n.mode ?? 0}|${n.capabilities.text_widget_connected}`).sort()
             );
             if (!force && fingerprint === this._lastFingerprint) {
                 return;
             }
             this._lastFingerprint = fingerprint;
 
-            const response = await fetch("/api/lm/register-nodes", {
+            const response = await fetch(lmUrl("/api/lm/register-nodes"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
